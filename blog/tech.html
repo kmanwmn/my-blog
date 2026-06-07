@@ -647,37 +647,60 @@ body.light .comment-time{color:#8a9aa8}
         var uploadKey = 'blog_up_' + file.name + '_' + file.size;
         var fill=document.getElementById('uploadFill');
         var label=document.getElementById('uploadLabel');
+        if(label) label.textContent = '准备上传...';
+        if(fill) fill.style.width = '0%';
 
-        // 读取已上传的分片记录（断点续传）
-        var doneChunks = {};
-        try{
-            var saved = JSON.parse(localStorage.getItem(uploadKey) || '{}');
-            if(saved && saved.chunks) {
-                saved.chunks.forEach(function(c){ doneChunks[c] = true; });
-                var doneCnt = Object.keys(doneChunks).length;
-                if(doneCnt > 0 && doneCnt < total) {
-                    if(label) label.textContent = '续传中 ' + Math.round(doneCnt/total*100) + '% (' + doneCnt + '/' + total + ')';
-                }
+        // 先查询服务器端已上传的分片
+        var xhrStatus = new XMLHttpRequest();
+        xhrStatus.open('GET', 'https://upload.sensing-origin.cn/api/upload/blog-video/status?filename=' + encodeURIComponent('blog_' + file.name), true);
+        xhrStatus.onload = function(){
+            var serverChunks = {};
+            if(xhrStatus.status === 200){
+                try{
+                    var data = JSON.parse(xhrStatus.responseText);
+                    if(data && data.chunks){
+                        data.chunks.forEach(function(c){ serverChunks[c] = true; });
+                    }
+                }catch(e){}
             }
-        }catch(e){}
+            startUpload(serverChunks);
+        };
+        xhrStatus.onerror = function(){ startUpload({}); };
+        xhrStatus.send();
 
-        var cur = 0;
-        // 找到第一个未上传的分片
-        while(cur < total && doneChunks[cur]) cur++;
-
-        function saveState(){
+        function startUpload(serverChunks){
+            // 合并本地和服务器端分片记录
+            var doneChunks = {};
             try{
-                var arr = Object.keys(doneChunks).map(Number);
-                localStorage.setItem(uploadKey, JSON.stringify({chunks: arr}));
+                var saved = JSON.parse(localStorage.getItem(uploadKey) || '{}');
+                if(saved && saved.chunks) {
+                    saved.chunks.forEach(function(c){ doneChunks[c] = true; });
+                }
             }catch(e){}
-        }
-        function clearState(){
-            try{ localStorage.removeItem(uploadKey); }catch(e){}
-        }
+            // 服务器记录优先级更高
+            Object.keys(serverChunks).forEach(function(c){ doneChunks[c] = true; });
 
-        if(fill) fill.style.width = (cur/total*100) + '%';
+            var cur = 0;
+            while(cur < total && doneChunks[cur]) cur++;
 
-        function next(){
+            var doneCnt = Object.keys(doneChunks).length;
+            if(doneCnt > 0 && doneCnt < total) {
+                if(label) label.textContent = '续传中 ' + Math.round(doneCnt/total*100) + '% (' + doneCnt + '/' + total + ')';
+            }
+
+            function saveState(){
+                try{
+                    var arr = Object.keys(doneChunks).map(Number);
+                    localStorage.setItem(uploadKey, JSON.stringify({chunks: arr}));
+                }catch(e){}
+            }
+            function clearState(){
+                try{ localStorage.removeItem(uploadKey); }catch(e){}
+            }
+
+            if(fill) fill.style.width = (cur/total*100) + '%';
+
+            function next(){
             var start = cur * CHUNK;
             var end = Math.min(start + CHUNK, file.size);
             var chunk = file.slice(start, end);
