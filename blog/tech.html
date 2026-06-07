@@ -214,8 +214,8 @@ body.light .comment-time{color:#8a9aa8}
 <script>
 (function(){
     // ===== 配置 =====
-    var API = 'http://124.223.88.48:5000';
-    var VOD = 'http://124.223.88.48:5000/vod/';
+    var API = '/api';
+    var VOD = '/vod/';
     var videoData = [];
     var adminToken = (function(){try{return localStorage.getItem('blog-admin-token')||''}catch(e){return ''}})();
     var adminUser = (function(){try{return localStorage.getItem('blog-admin-user')||''}catch(e){return ''}})();
