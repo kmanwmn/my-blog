@@ -296,7 +296,7 @@ body.light .comment-time{color:#8a9aa8}
         for(var i=0;i<videoData.length;i++){
             var v=videoData[i];
             h+='<div class="video-card" onclick="openVideo(\''+v.id+'\')">'+
-                '<div class="card-cover" style="background:'+v.gradient+';background-image:url('+COVERS+encodeURIComponent(v.filename)+'.jpg),none">'+
+                '<div class="card-cover" style="background:'+v.gradient+';background-size:cover;background-position:center;background-image:url('+COVERS+encodeURIComponent(v.filename)+'.jpg),none">'+
                 '<div class="play-overlay"><div class="play-circle">▶</div></div>'+
                 '<span class="card-duration">'+esc(v.duration)+'</span></div>'+
                 '<div class="card-body"><div class="card-title">'+esc(v.title)+'</div>'+
