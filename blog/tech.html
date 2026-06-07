@@ -565,7 +565,7 @@ body.light .comment-time{color:#8a9aa8}
 
         // 异步加载可用文件
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', API + '/blog-videos/available-files', true);
+        xhr.open('GET', 'https://upload.sensing-origin.cn:8080/api/blog-videos/available-files', true);
         xhr.onload = function(){
             var sel = document.getElementById('f_filename');
             if (!sel) return;
@@ -685,7 +685,7 @@ body.light .comment-time{color:#8a9aa8}
 
         // 先查询服务器端已上传的分片
         var xhrStatus = new XMLHttpRequest();
-        xhrStatus.open('GET', API + '/upload/blog-video/status?filename=' + encodeURIComponent('blog_' + file.name), true);
+        xhrStatus.open('GET', 'https://upload.sensing-origin.cn:8080/api/upload/blog-video/status?filename=' + encodeURIComponent('blog_' + file.name), true);
         xhrStatus.onload = function(){
             var serverChunks = {};
             if(xhrStatus.status === 200){
@@ -738,7 +738,7 @@ body.light .comment-time{color:#8a9aa8}
             var end = Math.min(start + CHUNK, file.size);
             var chunk = file.slice(start, end);
             var xhr = new XMLHttpRequest();
-            xhr.open('POST',API+'/upload/blog-video?chunk='+cur+'&total='+total, true);
+            xhr.open('POST','https://upload.sensing-origin.cn:8080/api/upload/blog-video?chunk='+cur+'&total='+total, true);
             xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
             xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
             xhr.onload = function(){
