@@ -524,9 +524,9 @@ body.light .comment-time{color:#8a9aa8}
             if(xhr.status!==200){el.innerHTML='<div class="admin-error" style="display:block">加载失败</div>';return}
             var list=JSON.parse(xhr.responseText);
             if(!list||!list.length){el.innerHTML='<p style="color:#5a7a9a;text-align:center;padding:16px">暂无视频</p>';return}
-            var h='<table class="admin-table"><tr><th>ID</th><th>标题</th><th>文件名</th><th>时长</th><th>操作</th></tr>';
+            var h='<table class="admin-table"><tr><th>ID</th><th>标题</th><th>文件名</th><th>标签</th><th>操作</th></tr>';
             list.forEach(function(v){
-                h+='<tr><td>'+v.id+'</td><td>'+esc(v.title_zh||'')+'</td><td>'+esc(v.filename||'')+'</td><td>'+(v.duration||'')+'</td>'+
+                h+='<tr><td>'+v.id+'</td><td>'+esc(v.title_zh||'')+'</td><td>'+esc(v.filename||'')+'</td><td>'+(v.tags||'')+'</td>'+
                     '<td><button class="admin-btn secondary small" onclick="adminEdit('+v.id+')">编辑</button> '+
                     '<button class="admin-btn danger small" onclick="adminDel('+v.id+')">删除</button></td></tr>';
             });
@@ -547,33 +547,66 @@ body.light .comment-time{color:#8a9aa8}
     }
 
     window.adminAdd=function(){
-        overlay.innerHTML='<div class="admin-modal" style="width:550px">'+
+        // 加载可用文件列表
+        var html='<div class="admin-modal" style="width:550px">'+
             '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
             '<h2>新增视频</h2>'+
             '<div class="admin-error" id="formErr" style="display:none"></div>'+
             '<label>标题</label><input id="f_title" />'+
             '<label>描述</label><textarea id="f_desc"></textarea>'+
-            '<label>文件名</label><input id="f_filename" placeholder="xxx.mp4" />'+
-            '<label>时长</label><input id="f_duration" placeholder="03:45" />'+
+            '<label>视频文件</label><select id="f_filename"><option value="">加载中...</option></select>'+
+            '<label>标签（逗号分隔）</label><input id="f_tags" placeholder="SAR,雷达成像,遥感" />'+
             '<label>排序</label><input id="f_sort" type="number" value="0" />'+
-            '<label>封面渐变</label><input id="f_gradient" value="linear-gradient(135deg,#0a1628,#1a3a5a,#0d2840)" />'+
-            '<label>封面图标</label><input id="f_icon" value="🎬" />'+
             '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">'+
             '<button class="admin-btn secondary" onclick="showAdminPanel()">取消</button>'+
             '<button class="admin-btn primary" onclick="adminSave()">保存</button></div></div>';
+        overlay.innerHTML = html;
+        overlay.classList.add('show');
+
+        // 异步加载可用文件
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API + '/blog-videos/available-files', true);
+        xhr.onload = function(){
+            var sel = document.getElementById('f_filename');
+            if (!sel) return;
+            try{
+                var list = JSON.parse(xhr.responseText);
+                sel.innerHTML = '<option value="">-- 选择文件 --</option>';
+                if (list && list.length > 0) {
+                    list.forEach(function(f){
+                        var opt = document.createElement('option');
+                        opt.value = f.filename;
+                        opt.textContent = f.filename;
+                        sel.appendChild(opt);
+                    });
+                } else {
+                    sel.innerHTML = '<option value="">暂无可用文件，请先上传</option>';
+                }
+            }catch(e){
+                sel.innerHTML = '<option value="">加载失败</option>';
+            }
+        };
+        xhr.onerror = function(){
+            var sel = document.getElementById('f_filename');
+            if (sel) sel.innerHTML = '<option value="">加载失败</option>';
+        };
+        xhr.send();
     };
 
     window.adminSave=function(){
+        var fn = document.getElementById('f_filename').value;
+        if (!fn) { alert('请选择视频文件'); return; }
         var data={
             sort: parseInt(document.getElementById('f_sort').value)||0,
             title_zh: document.getElementById('f_title').value,
             title_en: '',
             desc_zh: document.getElementById('f_desc').value,
             desc_en: '',
-            filename: document.getElementById('f_filename').value,
-            duration: document.getElementById('f_duration').value,
-            cover_gradient: document.getElementById('f_gradient').value,
-            cover_icon: document.getElementById('f_icon').value
+            filename: fn,
+            duration: '',
+            cover_gradient: '',
+            cover_icon: '',
+            tags: document.getElementById('f_tags').value || ''
         };
         adminApi('POST','/blog-videos',data,function(s,r){
             if(s===201||s===200){showAdminPanel();loadVideos()}
@@ -582,39 +615,39 @@ body.light .comment-time{color:#8a9aa8}
     };
 
     window.adminEdit=function(id){
-        overlay.innerHTML='<div class="admin-modal" style="width:550px"><div class="admin-status loading">加载中...</div></div>';
-        overlay.classList.add('show');
-        adminApi('GET','/blog-videos/'+id,null,function(s,item){
-            if(s!==200){overlay.innerHTML='<div class="admin-modal"><div class="admin-error" style="display:block">加载失败</div></div>';return}
-            overlay.innerHTML='<div class="admin-modal" style="width:550px">'+
-                '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
-                '<h2>编辑视频 #'+id+'</h2>'+
-                '<div class="admin-error" id="formErr" style="display:none"></div>'+
-                '<label>标题</label><input id="f_title" value="'+esc(item.title_zh||'')+'" />'+
-                '<label>描述</label><textarea id="f_desc">'+esc(item.desc_zh||'')+'</textarea>'+
-                '<label>文件名</label><input id="f_filename" value="'+esc(item.filename||'')+'" />'+
-                '<label>时长</label><input id="f_duration" value="'+esc(item.duration||'')+'" />'+
-                '<label>排序</label><input id="f_sort" type="number" value="'+(item.sort||0)+'" />'+
-                '<label>封面渐变</label><input id="f_gradient" value="'+esc(item.cover_gradient||'')+'" />'+
-                '<label>封面图标</label><input id="f_icon" value="'+esc(item.cover_icon||'')+'" />'+
-                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">'+
-                '<button class="admin-btn secondary" onclick="showAdminPanel()">取消</button>'+
-                '<button class="admin-btn primary" onclick="adminUpdate('+id+')">保存</button></div></div>';
+        overlay.innerHTML="<div class=\"admin-modal\" style=\"width:550px\"><div class=\"admin-status loading\">加载中...</div></div>";
+        overlay.classList.add("show");
+        adminApi("GET","/blog-videos/"+id,null,function(s,item){
+            if(s!==200){overlay.innerHTML="<div class=\"admin-modal\"><div class=\"admin-error\" style=\"display:block\">加载失败</div></div>";return}
+            overlay.innerHTML="<div class=\"admin-modal\" style=\"width:550px\">"+
+                "<button class=\"admin-close\" onclick=\"closeAdmin()\">&times;</button>"+
+                "<h2>编辑视频 #"+id+"</h2>"+
+                "<div class=\"admin-error\" id=\"formErr\" style=\"display:none\"></div>"+
+                "<label>标题</label><input id=\"f_title\" value=\""+esc(item.title_zh||"")+"\" />"+
+                "<label>描述</label><textarea id=\"f_desc\">"+esc(item.desc_zh||"")+"</textarea>"+
+                "<label>文件名</label><input id=\"f_filename\" value=\""+esc(item.filename||"")+"\" />"+
+                "<label>标签（逗号分隔）</label><input id=\"f_tags\" value=\""+esc(item.tags||"")+"\" />"+
+                "<label>排序</label><input id=\"f_sort\" type=\"number\" value=\""+(item.sort||0)+"\" />"+
+                "<div style=\"display:flex;gap:8px;justify-content:flex-end;margin-top:8px\">"+
+                "<button class=\"admin-btn secondary\" onclick=\"showAdminPanel()\">取消</button>"+
+                "<button class=\"admin-btn primary\" onclick=\"adminUpdate("+id+")\">保存</button></div></div>";
         });
     };
 
     window.adminUpdate=function(id){
         var data={
-            sort: parseInt(document.getElementById('f_sort').value)||0,
-            title_zh: document.getElementById('f_title').value,
-            title_en: '',
-            desc_zh: document.getElementById('f_desc').value,
-            desc_en: '',
-            filename: document.getElementById('f_filename').value,
-            duration: document.getElementById('f_duration').value,
-            cover_gradient: document.getElementById('f_gradient').value,
-            cover_icon: document.getElementById('f_icon').value
+            sort: parseInt(document.getElementById("f_sort").value)||0,
+            title_zh: document.getElementById("f_title").value,
+            title_en: "",
+            desc_zh: document.getElementById("f_desc").value,
+            desc_en: "",
+            filename: document.getElementById("f_filename").value,
+            duration: "",
+            cover_gradient: "",
+            cover_icon: "",
+            tags: document.getElementById("f_tags").value || ""
         };
+
         adminApi('PUT','/blog-videos/'+id,data,function(s,r){
             if(s===200){showAdminPanel();loadVideos()}
             else{var e=document.getElementById('formErr');if(e){e.textContent=r.error||'保存失败';e.style.display='block'}}
