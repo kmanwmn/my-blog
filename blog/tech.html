@@ -644,36 +644,70 @@ body.light .comment-time{color:#8a9aa8}
         var file=fi.files[0];
         var CHUNK=1024*1024;
         var total=Math.ceil(file.size/CHUNK);
+        var uploadKey = 'blog_up_' + file.name + '_' + file.size;
         var fill=document.getElementById('uploadFill');
         var label=document.getElementById('uploadLabel');
-        if(label)label.textContent='上传中 0%';
-        if(fill)fill.style.width='0%';
-        var cur=0;
+
+        // 读取已上传的分片记录（断点续传）
+        var doneChunks = {};
+        try{
+            var saved = JSON.parse(localStorage.getItem(uploadKey) || '{}');
+            if(saved && saved.chunks) {
+                saved.chunks.forEach(function(c){ doneChunks[c] = true; });
+                var doneCnt = Object.keys(doneChunks).length;
+                if(doneCnt > 0 && doneCnt < total) {
+                    if(label) label.textContent = '续传中 ' + Math.round(doneCnt/total*100) + '% (' + doneCnt + '/' + total + ')';
+                }
+            }
+        }catch(e){}
+
+        var cur = 0;
+        // 找到第一个未上传的分片
+        while(cur < total && doneChunks[cur]) cur++;
+
+        function saveState(){
+            try{
+                var arr = Object.keys(doneChunks).map(Number);
+                localStorage.setItem(uploadKey, JSON.stringify({chunks: arr}));
+            }catch(e){}
+        }
+        function clearState(){
+            try{ localStorage.removeItem(uploadKey); }catch(e){}
+        }
+
+        if(fill) fill.style.width = (cur/total*100) + '%';
+
         function next(){
-            var start=cur*CHUNK;
-            var end=Math.min(start+CHUNK,file.size);
-            var chunk=file.slice(start,end);
-            var xhr=new XMLHttpRequest();
-            xhr.open('POST','https://124.223.88.48:8080/api/upload/blog-video?chunk='+cur+'&total='+total,true);
-            xhr.setRequestHeader('Authorization','Bearer '+adminToken);
-            xhr.setRequestHeader('X-Filename',encodeURIComponent(file.name));
-            xhr.onload=function(){
-                if(xhr.status===201){
+            var start = cur * CHUNK;
+            var end = Math.min(start + CHUNK, file.size);
+            var chunk = file.slice(start, end);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST','https://124.223.88.48:8080/api/upload/blog-video?chunk='+cur+'&total='+total, true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
+            xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+            xhr.onload = function(){
+                if(xhr.status === 201){
+                    doneChunks[cur] = true;
+                    saveState();
                     cur++;
-                    var pct=Math.round(cur/total*100);
-                    if(fill)fill.style.width=pct+'%';
-                    if(label)label.textContent='上传中 '+pct+'% ('+cur+'/'+total+')';
-                    if(cur<total){next()}
-                    else{
-                        if(fill)fill.style.width='100%';
-                        if(label)label.textContent='上传完成 ✅';
-                        setTimeout(function(){showAdminPanel();loadVideos()},1000);
+                    var pct = Math.round(cur / total * 100);
+                    if(fill) fill.style.width = pct + '%';
+                    if(label) label.textContent = '上传中 ' + pct + '% (' + cur + '/' + total + ')';
+                    if(cur < total){ next(); }
+                    else {
+                        if(fill) fill.style.width = '100%';
+                        if(label) label.textContent = '上传完成 ✅';
+                        clearState();
+                        setTimeout(function(){ showAdminPanel(); loadVideos(); }, 1000);
                     }
-                }else{
-                    try{var r=JSON.parse(xhr.responseText);alert(r.error||'上传失败')}catch(e){alert('上传失败')}
+                } else {
+                    try{ var r = JSON.parse(xhr.responseText); alert(r.error || '上传失败'); }
+                    catch(e){ alert('上传失败 (HTTP ' + xhr.status + ')'); }
                 }
             };
-            xhr.onerror=function(){alert('网络错误')};
+            xhr.onerror = function(){
+                alert('网络错误，已保存上传进度，可重新选择同一文件续传');
+            };
             xhr.send(chunk);
         }
         next();
