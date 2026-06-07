@@ -216,6 +216,7 @@ body.light .comment-time{color:#8a9aa8}
     // ===== 配置 =====
     var API = '/api';
     var VOD = '/vod/';
+    var UPLOAD_URL = 'https://124.223.88.48:8080/api/upload/blog-video'; // 大文件直传
     var videoData = [];
     var adminToken = (function(){try{return localStorage.getItem('blog-admin-token')||''}catch(e){return ''}})();
     var adminUser = (function(){try{return localStorage.getItem('blog-admin-user')||''}catch(e){return ''}})();
@@ -654,7 +655,7 @@ body.light .comment-time{color:#8a9aa8}
             var end=Math.min(start+CHUNK,file.size);
             var chunk=file.slice(start,end);
             var xhr=new XMLHttpRequest();
-            xhr.open('POST',API+'/upload/blog-video?chunk='+cur+'&total='+total,true);
+            xhr.open('POST',UPLOAD_URL+'?chunk='+cur+'&total='+total,true);
             xhr.setRequestHeader('Authorization','Bearer '+adminToken);
             xhr.setRequestHeader('X-Filename',file.name);
             xhr.onload=function(){
