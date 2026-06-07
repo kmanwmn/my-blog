@@ -654,7 +654,7 @@ body.light .comment-time{color:#8a9aa8}
             var end=Math.min(start+CHUNK,file.size);
             var chunk=file.slice(start,end);
             var xhr=new XMLHttpRequest();
-            xhr.open('POST',API+'/upload/blog-video?chunk='+cur+'&total='+total,true);
+            xhr.open('POST','https://124.223.88.48:8080/api/upload/blog-video?chunk='+cur+'&total='+total,true);
             xhr.setRequestHeader('Authorization','Bearer '+adminToken);
             xhr.setRequestHeader('X-Filename',file.name);
             xhr.onload=function(){
