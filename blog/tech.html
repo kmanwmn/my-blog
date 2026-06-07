@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>技术交流 · 个人博客</title>
+<link rel="icon" href="data:,">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;min-height:100%}
@@ -317,7 +318,11 @@ body.light .comment-time{color:#8a9aa8}
         detailTitle.textContent=v.title;
         detailDesc.textContent=v.desc||'';
         videoPlayer.src=VOD+encodeURIComponent(v.filename);
-        videoPlayer.play();
+        videoPlayer.load();
+        videoPlayer.play().catch(function(e){
+            // 用户可能快速切换视频导致 play 中断，忽略此错误
+            if (e.name !== 'AbortError') console.warn(e);
+        });
         window.scrollTo({top:0,behavior:'smooth'});
         loadComments(currentVideoId);
     };
