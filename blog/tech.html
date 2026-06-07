@@ -316,7 +316,7 @@ body.light .comment-time{color:#8a9aa8}
         detailView.classList.add('active');
         detailTitle.textContent=v.title;
         detailDesc.textContent=v.desc||'';
-        videoPlayer.src=VOD+v.filename;
+        videoPlayer.src=VOD+encodeURIComponent(v.filename);
         videoPlayer.play();
         window.scrollTo({top:0,behavior:'smooth'});
         loadComments(currentVideoId);
