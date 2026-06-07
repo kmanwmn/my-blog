@@ -216,6 +216,7 @@ body.light .comment-time{color:#8a9aa8}
     // ===== 配置 =====
     var API = '/api';
     var VOD = 'https://upload.sensing-origin.cn:8080/vod/';
+    var COVERS = 'https://upload.sensing-origin.cn:8080/covers/';
     var videoData = [];
     var adminToken = (function(){try{return localStorage.getItem('blog-admin-token')||''}catch(e){return ''}})();
     var adminUser = (function(){try{return localStorage.getItem('blog-admin-user')||''}catch(e){return ''}})();
@@ -295,7 +296,7 @@ body.light .comment-time{color:#8a9aa8}
         for(var i=0;i<videoData.length;i++){
             var v=videoData[i];
             h+='<div class="video-card" onclick="openVideo(\''+v.id+'\')">'+
-                '<div class="card-cover" style="background:'+v.gradient+'">'+
+                '<div class="card-cover" style="background:'+v.gradient+';background-image:url('+COVERS+encodeURIComponent(v.filename)+'.jpg),none">'+
                 '<span style="opacity:.85">'+v.icon+'</span>'+
                 '<div class="play-overlay"><div class="play-circle">▶</div></div>'+
                 '<span class="card-duration">'+esc(v.duration)+'</span></div>'+
