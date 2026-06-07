@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术交流 · 个人博客</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;min-height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Microsoft YaHei',sans-serif;background:#03050a;color:#e0e4ee;line-height:1.6;min-height:100%;overflow-x:hidden;transition:background .4s,color .4s}
+body.light{background:#f5f7fa;color:#1a2a3a}
+::selection{background:rgba(0,123,255,0.3)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0e1a}
+::-webkit-scrollbar-thumb{background:#1a3a5a;border-radius:3px}
+body.light ::-webkit-scrollbar-track{background:#eef1f5}
+body.light ::-webkit-scrollbar-thumb{background:#b0b8c8}
+
+/* 导航 */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(3,5,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(74,158,255,.1);padding:14px 0;transition:background .4s}
+body.light nav{background:rgba(245,247,250,.95);border-bottom-color:rgba(0,0,0,.06)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 24px}
+.nav-brand{font-size:.9rem;font-weight:700;color:#fff;text-decoration:none;letter-spacing:1px}
+body.light .nav-brand{color:#1a2a3a}
+.nav-right{display:flex;align-items:center;gap:10px}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(74,158,255,.25);background:rgba(74,158,255,.1);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#4a9eff}
+.theme-btn:hover{background:rgba(74,158,255,.2)}
+.nav-home{color:#6a8ab5;text-decoration:none;font-size:.82rem;transition:color .3s}
+.nav-home:hover{color:#4a9eff}
+body.light .nav-home{color:#5a6a7a}
+body.light .nav-home:hover{color:#4a9eff}
+
+/* 页面头部 */
+.page-header{padding:110px 24px 36px;text-align:center}
+.page-header h1{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;color:#fff;margin-bottom:6px}
+body.light .page-header h1{color:#1a2a3a}
+.page-header h1 .hl{color:#4a9eff}
+.page-header .sub{font-size:.85rem;color:#6a8ab5;margin-top:4px}
+body.light .page-header .sub{color:#5a6a7a}
+
+/* 视频网格 */
+.grid-wrap{max-width:1100px;margin:0 auto 60px;padding:0 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.video-card{cursor:pointer;border-radius:10px;overflow:hidden;transition:transform .3s,box-shadow .3s;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04)}
+.video-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+body.light .video-card{background:#fff;border-color:rgba(0,0,0,.06)}
+body.light .video-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.1)}
+.card-cover{position:relative;width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:3rem}
+.card-cover .play-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s}
+.video-card:hover .play-overlay{opacity:1}
+.play-overlay .play-circle{width:52px;height:52px;border-radius:50%;background:rgba(74,158,255,.9);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff}
+.card-duration{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;padding:2px 8px;border-radius:4px}
+.card-body{padding:12px 14px 14px}
+.card-title{font-size:.88rem;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+.card-meta{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:.74rem;color:#6a8ab5}
+body.light .card-meta{color:#8a9aa8}
+
+/* 空状态 */
+.grid-empty{text-align:center;padding:80px 20px;color:#6a8ab5}
+.grid-empty .icon{font-size:3.5rem;margin-bottom:12px;opacity:.5}
+.grid-empty .text{font-size:.9rem}
+
+/* 详情页 */
+.detail-view{display:none;max-width:900px;margin:0 auto;padding:100px 24px 60px}
+.detail-view.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.detail-top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.detail-back{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:transparent;color:#8a9bb5;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .3s;flex-shrink:0}
+.detail-back:hover{color:#4a9eff;border-color:#4a9eff}
+body.light .detail-back{border-color:rgba(0,0,0,.1);color:#5a6a7a}
+body.light .detail-back:hover{color:#4a9eff;border-color:#4a9eff}
+.detail-title{font-size:1.2rem;font-weight:600;flex:1}
+.detail-desc{font-size:.85rem;color:#6a8ab5;margin:-4px 0 16px 48px}
+body.light .detail-desc{color:#8a9aa8}
+.player-wrap{width:100%;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+video{width:100%;display:block;max-height:70vh}
+
+/* 评论区 */
+.comment-section{margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06)}
+body.light .comment-section{border-top-color:rgba(0,0,0,.06)}
+.comment-title{font-size:1rem;font-weight:600;margin-bottom:16px;color:#4a9eff}
+.comment-form{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.comment-form .row{display:flex;gap:10px}
+.comment-form .row input{flex:1}
+.comment-form input,.comment-form textarea{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e0e4ee;font-size:.85rem;font-family:inherit;outline:none;transition:border .3s}
+.comment-form input:focus,.comment-form textarea:focus{border-color:#4a9eff}
+body.light .comment-form input,body.light .comment-form textarea{background:#fff;border-color:rgba(0,0,0,.1);color:#1a2a3a}
+.comment-form textarea{min-height:70px;resize:vertical}
+.comment-form .honey{display:none}
+.comment-submit{padding:8px 24px;border-radius:8px;border:none;background:#4a9eff;color:#fff;cursor:pointer;font-size:.85rem;font-weight:500;align-self:flex-end;transition:background .3s;font-family:inherit}
+.comment-submit:hover{background:#3a8aee}
+.comment-submit:disabled{opacity:.5;cursor:not-allowed}
+.comment-list{display:flex;flex-direction:column;gap:14px}
+.comment-item{padding:12px 16px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04)}
+body.light .comment-item{background:#fff;border-color:rgba(0,0,0,.06)}
+.comment-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:.78rem}
+.comment-nick{font-weight:600;color:#4a9eff}
+.comment-time{color:#5a7a9a;font-size:.72rem}
+body.light .comment-time{color:#8a9aa8}
+.comment-body{font-size:.85rem;word-break:break-word}
+.comment-body .at{color:#4a9eff;font-weight:500}
+.comment-actions{margin-top:6px;display:flex;gap:10px;font-size:.75rem}
+.comment-reply-btn{color:#6a8ab5;cursor:pointer;transition:color .3s;background:none;border:none;font-family:inherit;font-size:.75rem}
+.comment-reply-btn:hover{color:#4a9eff}
+.comment-del-btn{color:#e04040;cursor:pointer;background:none;border:none;font-family:inherit;font-size:.75rem;opacity:.6;transition:opacity .3s}
+.comment-del-btn:hover{opacity:1}
+.comment-empty{text-align:center;padding:24px;color:#5a7a9a;font-size:.85rem}
+.reply-indent{margin-left:24px;border-left:2px solid rgba(74,158,255,.2);padding-left:12px}
+
+/* 后台管理面板 */
+.admin-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;animation:fadeIn .25s ease;padding:20px}
+.admin-overlay.show{display:flex}
+.admin-modal{background:#0e121f;border:1px solid rgba(74,158,255,.2);border-radius:16px;padding:28px;max-height:85vh;overflow-y:auto;width:900px;max-width:100%;color:#e0e4ee;position:relative}
+.admin-modal.small{width:380px}
+.admin-modal h2{font-size:1.1rem;margin-bottom:16px;color:#4a9eff;font-weight:600}
+.admin-modal input,.admin-modal textarea,.admin-modal select{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e0e4ee;font-size:.85rem;font-family:inherit;margin-bottom:10px;outline:none;transition:border .3s}
+.admin-modal input:focus,.admin-modal textarea:focus{border-color:#4a9eff}
+.admin-modal textarea{min-height:70px;resize:vertical}
+.admin-modal label{display:block;font-size:.76rem;color:#8a9bb5;margin-bottom:3px;font-weight:500}
+.admin-btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:.82rem;font-weight:500;transition:all .3s;font-family:inherit}
+.admin-btn.primary{background:#4a9eff;color:#fff}
+.admin-btn.primary:hover{background:#3a8aee}
+.admin-btn.danger{background:#e04040;color:#fff}
+.admin-btn.danger:hover{background:#cc3030}
+.admin-btn.secondary{background:rgba(255,255,255,.08);color:#8a9bb5}
+.admin-btn.secondary:hover{background:rgba(255,255,255,.12);color:#e0e4ee}
+.admin-btn.small{padding:5px 10px;font-size:.72rem}
+.admin-close{position:absolute;top:14px;right:16px;cursor:pointer;font-size:1.3rem;color:#5a6a7a;transition:color .3s;background:none;border:none;z-index:1;line-height:1}
+.admin-close:hover{color:#e0e4ee}
+.admin-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.admin-table th{color:#4a9eff;font-weight:600;font-size:.72rem;letter-spacing:1px}
+.admin-table td{color:#b0c0d0}
+.admin-error{color:#e04040;font-size:.8rem;margin-bottom:10px;padding:8px 12px;background:rgba(224,64,64,.1);border-radius:6px;display:none}
+.admin-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.admin-status{padding:3px 8px;border-radius:4px;font-size:.68rem}
+.admin-status.loading{background:rgba(74,158,255,.1);color:#4a9eff}
+
+/* 进度条 */
+.progress-bar{width:100%;height:22px;background:rgba(255,255,255,.06);border-radius:11px;overflow:hidden;margin:8px 0;position:relative}
+.progress-bar .fill{height:100%;width:0%;background:linear-gradient(90deg,#4a9eff,#80c8ff);border-radius:11px;transition:width .4s ease}
+.progress-bar .label{position:absolute;top:0;left:0;right:0;height:22px;line-height:22px;text-align:center;font-size:.7rem;color:#fff;font-weight:600}
+
+/* 响应式 */
+@media(max-width:768px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+    .detail-view{padding:90px 16px 40px}
+    .card-body{padding:10px 12px}
+    .card-title{font-size:.82rem;min-height:2.2em}
+    .comment-form .row{flex-direction:column}
+    .nav-inner{padding:0 16px}
+}
+@media(max-width:480px){
+    .page-header{padding:95px 16px 24px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+    .admin-modal{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">个人博客</a>
+        <div class="nav-right">
+            <button class="theme-btn" id="themeBtn">☀️</button>
+            <a href="/" class="nav-home">← 首页</a>
+        </div>
+    </div>
+</nav>
+
+<!-- 页面头部 -->
+<div class="page-header">
+    <h1><span class="hl">技术</span>交流</h1>
+    <p class="sub">技术视频分享与交流</p>
+</div>
+
+<!-- 视频网格 -->
+<div class="grid-wrap" id="gridView">
+    <div class="grid" id="gridContainer"></div>
+</div>
+
+<!-- 视频详情 -->
+<div class="detail-view" id="detailView">
+    <div class="detail-top">
+        <button class="detail-back" id="detailBack">←</button>
+        <div class="detail-title" id="detailTitle"></div>
+    </div>
+    <div class="detail-desc" id="detailDesc"></div>
+    <div class="player-wrap">
+        <video id="videoPlayer" controls preload="auto" width="100%"></video>
+    </div>
+
+    <!-- 评论区 -->
+    <div class="comment-section" id="commentSection">
+        <div class="comment-title">💬 评论</div>
+        <div class="comment-form" id="commentForm">
+            <div class="row">
+                <input type="text" id="commentNick" placeholder="昵称（必填）" maxlength="50" />
+                <input type="email" id="commentEmail" placeholder="邮箱（可选，接收回复通知）" />
+            </div>
+            <textarea id="commentContent" placeholder="写下你的评论..." maxlength="2000"></textarea>
+            <input type="text" class="honey" id="commentHoney" tabindex="-1" autocomplete="off" />
+            <button class="comment-submit" id="commentSubmit">发表评论</button>
+        </div>
+        <div class="comment-list" id="commentList"></div>
+    </div>
+</div>
+
+<!-- 后台管理面板 -->
+<div class="admin-overlay" id="adminOverlay"></div>
+
+<script>
+(function(){
+    // ===== 配置 =====
+    var API = '/api';
+    var VOD = '/vod/';
+    var videoData = [];
+    var adminToken = (function(){try{return localStorage.getItem('blog-admin-token')||''}catch(e){return ''}})();
+    var adminUser = (function(){try{return localStorage.getItem('blog-admin-user')||''}catch(e){return ''}})();
+
+    // ===== DOM 引用 =====
+    var gridView = document.getElementById('gridView');
+    var detailView = document.getElementById('detailView');
+    var gridContainer = document.getElementById('gridContainer');
+    var detailBack = document.getElementById('detailBack');
+    var detailTitle = document.getElementById('detailTitle');
+    var detailDesc = document.getElementById('detailDesc');
+    var videoPlayer = document.getElementById('videoPlayer');
+    var themeBtn = document.getElementById('themeBtn');
+    var overlay = document.getElementById('adminOverlay');
+    var commentList = document.getElementById('commentList');
+    var commentNick = document.getElementById('commentNick');
+    var commentEmail = document.getElementById('commentEmail');
+    var commentContent = document.getElementById('commentContent');
+    var commentHoney = document.getElementById('commentHoney');
+    var commentSubmit = document.getElementById('commentSubmit');
+
+    var currentVideoId = 0;
+    var replyingTo = 0; // parent_id for reply
+
+    // ===== 安全存储 =====
+    function sGet(k,d){try{var v=localStorage.getItem(k);return v!==null?v:d}catch(e){return d}}
+    function sSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+    // ===== 主题 =====
+    function setTheme(t){
+        document.body.classList.toggle('light',t==='light');
+        themeBtn.textContent=t==='light'?'🌙':'☀️';
+        sSet('blog-tech-theme',t);
+    }
+    themeBtn.onclick=function(){
+        setTheme(document.body.classList.contains('light')?'dark':'light');
+    };
+    setTheme(sGet('blog-tech-theme','dark'));
+
+    // ===== 加载视频 =====
+    function loadVideos(){
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET',API+'/blog-videos',true);
+        xhr.timeout=8000;
+        xhr.onload=function(){
+            if(xhr.status===200){
+                try{
+                    var list=JSON.parse(xhr.responseText);
+                    if(list&&list.length>0){
+                        videoData=list.map(function(v,i){
+                            return {
+                                id:'b'+(i+1),
+                                _id:v.id,
+                                title:v.title_zh||'',
+                                desc:v.desc_zh||'',
+                                filename:v.filename||'',
+                                duration:v.duration||'',
+                                gradient:v.cover_gradient||'linear-gradient(135deg,#0a1628,#1a3a5a,#0d2840)',
+                                icon:v.cover_icon||'🎬'
+                            };
+                        });
+                        renderGrid();
+                    }
+                }catch(e){}
+            }
+        };
+        xhr.send();
+    }
+
+    // ===== 渲染网格 =====
+    function renderGrid(){
+        if(!videoData||!videoData.length){
+            gridContainer.innerHTML='<div class="grid-empty"><div class="icon">📺</div><div class="text">暂无视频，敬请期待</div></div>';
+            return;
+        }
+        var h='';
+        for(var i=0;i<videoData.length;i++){
+            var v=videoData[i];
+            h+='<div class="video-card" onclick="openVideo(\''+v.id+'\')">'+
+                '<div class="card-cover" style="background:'+v.gradient+'">'+
+                '<span style="opacity:.85">'+v.icon+'</span>'+
+                '<div class="play-overlay"><div class="play-circle">▶</div></div>'+
+                '<span class="card-duration">'+esc(v.duration)+'</span></div>'+
+                '<div class="card-body"><div class="card-title">'+esc(v.title)+'</div>'+
+                '<div class="card-meta"><span>'+esc(v.duration)+'</span></div></div></div>';
+        }
+        gridContainer.innerHTML=h;
+    }
+    function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+    // ===== 打开视频 =====
+    window.openVideo=function(id){
+        var v=null;
+        for(var i=0;i<videoData.length;i++){if(videoData[i].id===id){v=videoData[i];break}}
+        if(!v)return;
+        currentVideoId=v._id;
+        gridView.style.display='none';
+        detailView.classList.add('active');
+        detailTitle.textContent=v.title;
+        detailDesc.textContent=v.desc||'';
+        videoPlayer.src=VOD+v.filename;
+        videoPlayer.play();
+        window.scrollTo({top:0,behavior:'smooth'});
+        loadComments(currentVideoId);
+    };
+
+    // ===== 返回列表 =====
+    function backToGrid(){
+        videoPlayer.pause();
+        videoPlayer.removeAttribute('src');
+        videoPlayer.load();
+        detailView.classList.remove('active');
+        gridView.style.display='block';
+        window.scrollTo({top:0,behavior:'smooth'});
+        replyingTo=0;
+    }
+    detailBack.onclick=backToGrid;
+
+    // ===== 评论 =====
+    function loadComments(videoId){
+        commentList.innerHTML='<div class="comment-empty">加载中...</div>';
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET',API+'/blog-comments?video_id='+videoId,true);
+        xhr.onload=function(){
+            if(xhr.status===200){
+                try{
+                    var list=JSON.parse(xhr.responseText);
+                    renderComments(list||[]);
+                }catch(e){renderComments([])}
+            }else{renderComments([])}
+        };
+        xhr.onerror=function(){renderComments([])};
+        xhr.send();
+    }
+
+    function renderComments(list){
+        if(!list||!list.length){
+            commentList.innerHTML='<div class="comment-empty">暂无评论，来说两句吧</div>';
+            return;
+        }
+        var isAdmin=!!adminToken;
+        var h='';
+        for(var i=0;i<list.length;i++){
+            var c=list[i];
+            h+=renderCommentItem(c,isAdmin);
+        }
+        commentList.innerHTML=h;
+    }
+
+    function renderCommentItem(c,isAdmin){
+        var time=formatTime(c.created_at);
+        var delBtn=isAdmin?' <button class="comment-del-btn" onclick="delComment('+c.id+')">删除</button>':'';
+        var content=c.content||'';
+        // 检查是否有回复
+        var html='<div class="comment-item">'+
+            '<div class="comment-head"><span class="comment-nick">'+esc(c.nickname)+'</span>'+
+            '<span class="comment-time">'+time+'</span></div>'+
+            '<div class="comment-body">'+esc(content)+'</div>'+
+            '<div class="comment-actions">'+
+            '<button class="comment-reply-btn" onclick="replyTo('+c.id+',\''+esc(c.nickname)+'\')">回复</button>'+delBtn+
+            '</div></div>';
+        return html;
+    }
+
+    function formatTime(t){
+        if(!t)return '';
+        try{
+            var d=new Date(t.replace(' ','T'));
+            var now=new Date();
+            var diff=Math.floor((now-d)/1000);
+            if(diff<60)return '刚刚';
+            if(diff<3600)return Math.floor(diff/60)+'分钟前';
+            if(diff<86400)return Math.floor(diff/3600)+'小时前';
+            if(diff<2592000)return Math.floor(diff/86400)+'天前';
+            return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+        }catch(e){return t||''}
+    }
+
+    window.replyTo=function(id,nick){
+        replyingTo=id;
+        commentContent.focus();
+        commentContent.value='@'+nick+' ';
+        commentContent.setSelectionRange(commentContent.value.length,commentContent.value.length);
+    };
+
+    // 发表评论
+    commentSubmit.onclick=function(){
+        var nick=commentNick.value.trim();
+        var content=commentContent.value.trim();
+        var email=commentEmail.value.trim();
+        var honey=commentHoney.value;
+
+        if(!nick){alert('请输入昵称');return}
+        if(!content){alert('请输入评论内容');return}
+
+        var data={
+            video_id: currentVideoId,
+            nickname: nick,
+            email: email,
+            content: content,
+            honeypot: honey
+        };
+        if(replyingTo>0)data.parent_id=replyingTo;
+
+        var btn=commentSubmit;
+        btn.disabled=true;
+        btn.textContent='提交中...';
+
+        var xhr=new XMLHttpRequest();
+        xhr.open('POST',API+'/blog-comments',true);
+        xhr.setRequestHeader('Content-Type','application/json');
+        xhr.onload=function(){
+            btn.disabled=false;
+            btn.textContent='发表评论';
+            if(xhr.status===201||xhr.status===200){
+                commentNick.value='';
+                commentEmail.value='';
+                commentContent.value='';
+                commentHoney.value='';
+                replyingTo=0;
+                loadComments(currentVideoId);
+            }else{
+                try{var r=JSON.parse(xhr.responseText);alert(r.error||'提交失败')}
+                catch(e){alert('提交失败')}
+            }
+        };
+        xhr.onerror=function(){btn.disabled=false;btn.textContent='发表评论';alert('网络错误')};
+        xhr.send(JSON.stringify(data));
+    };
+
+    window.delComment=function(id){
+        if(!confirm('确认删除这条评论？'))return;
+        var xhr=new XMLHttpRequest();
+        xhr.open('DELETE',API+'/blog-comments/'+id,true);
+        xhr.setRequestHeader('Authorization','Bearer '+adminToken);
+        xhr.onload=function(){
+            if(xhr.status===200)loadComments(currentVideoId);
+        };
+        xhr.send();
+    };
+
+    // ===== 键盘快捷键 =====
+    document.addEventListener('keydown',function(e){
+        if(e.ctrlKey&&e.key==='`'){
+            e.preventDefault();
+            if(adminToken)showAdminPanel();
+            else showAdminLogin();
+        }
+    });
+
+    // ===== 后台管理 =====
+    function showAdminLogin(){
+        overlay.innerHTML='<div class="admin-modal small">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<h2>管理员登录</h2>'+
+            '<div class="admin-error" id="loginErr" style="display:none"></div>'+
+            '<label>用户名</label><input type="text" id="loginUser" value="liyuchen" />'+
+            '<label>密码</label><input type="password" id="loginPass" />'+
+            '<button class="admin-btn primary" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">登录</button></div>';
+        overlay.classList.add('show');
+    }
+
+    window.doLogin=function(){
+        var u=document.getElementById('loginUser').value;
+        var p=document.getElementById('loginPass').value;
+        var err=document.getElementById('loginErr');
+        var xhr=new XMLHttpRequest();
+        xhr.open('POST',API+'/auth',true);
+        xhr.setRequestHeader('Content-Type','application/json');
+        xhr.onload=function(){
+            if(xhr.status===200){
+                var r=JSON.parse(xhr.responseText);
+                adminToken=r.token;adminUser=r.username;
+                sSet('blog-admin-token',adminToken);sSet('blog-admin-user',adminUser);
+                showAdminPanel();
+            }else{
+                if(err){err.textContent='用户名或密码错误';err.style.display='block'}
+            }
+        };
+        xhr.onerror=function(){if(err){err.textContent='无法连接服务器';err.style.display='block'}};
+        xhr.send(JSON.stringify({username:u,password:p}));
+    };
+
+    window.showAdminPanel=function(){
+        if(!adminToken){showAdminLogin();return}
+        overlay.innerHTML='<div class="admin-modal">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<div class="admin-toolbar"><h2>视频管理</h2>'+
+            '<div style="display:flex;gap:8px">'+
+            '<button class="admin-btn primary small" onclick="adminAdd()">+ 新增</button>'+
+            '<button class="admin-btn primary small" onclick="adminUpload()">↑ 上传视频</button>'+
+            '<button class="admin-btn secondary small" onclick="adminLogout()">退出</button></div></div>'+
+            '<div id="adminVideoList"><div class="admin-status loading">加载中...</div></div></div>';
+        overlay.classList.add('show');
+        refreshList();
+    };
+
+    window.closeAdmin=function(){overlay.classList.remove('show')};
+
+    function refreshList(){
+        var el=document.getElementById('adminVideoList');
+        if(!el)return;
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET',API+'/blog-videos',true);
+        xhr.onload=function(){
+            if(xhr.status!==200){el.innerHTML='<div class="admin-error" style="display:block">加载失败</div>';return}
+            var list=JSON.parse(xhr.responseText);
+            if(!list||!list.length){el.innerHTML='<p style="color:#5a7a9a;text-align:center;padding:16px">暂无视频</p>';return}
+            var h='<table class="admin-table"><tr><th>ID</th><th>标题</th><th>文件名</th><th>时长</th><th>操作</th></tr>';
+            list.forEach(function(v){
+                h+='<tr><td>'+v.id+'</td><td>'+esc(v.title_zh||'')+'</td><td>'+esc(v.filename||'')+'</td><td>'+(v.duration||'')+'</td>'+
+                    '<td><button class="admin-btn secondary small" onclick="adminEdit('+v.id+')">编辑</button> '+
+                    '<button class="admin-btn danger small" onclick="adminDel('+v.id+')">删除</button></td></tr>';
+            });
+            h+='</table>';
+            el.innerHTML=h;
+        };
+        xhr.send();
+    }
+
+    function adminApi(method,path,body,cb){
+        var xhr=new XMLHttpRequest();
+        xhr.open(method,API+path,true);
+        xhr.setRequestHeader('Content-Type','application/json');
+        xhr.setRequestHeader('Authorization','Bearer '+adminToken);
+        xhr.onload=function(){var r={};try{r=JSON.parse(xhr.responseText)}catch(e){}if(cb)cb(xhr.status,r)};
+        xhr.onerror=function(){if(cb)cb(0,{error:'网络错误'})};
+        xhr.send(body?JSON.stringify(body):null);
+    }
+
+    window.adminAdd=function(){
+        overlay.innerHTML='<div class="admin-modal" style="width:550px">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<h2>新增视频</h2>'+
+            '<div class="admin-error" id="formErr" style="display:none"></div>'+
+            '<label>标题</label><input id="f_title" />'+
+            '<label>描述</label><textarea id="f_desc"></textarea>'+
+            '<label>文件名</label><input id="f_filename" placeholder="xxx.mp4" />'+
+            '<label>时长</label><input id="f_duration" placeholder="03:45" />'+
+            '<label>排序</label><input id="f_sort" type="number" value="0" />'+
+            '<label>封面渐变</label><input id="f_gradient" value="linear-gradient(135deg,#0a1628,#1a3a5a,#0d2840)" />'+
+            '<label>封面图标</label><input id="f_icon" value="🎬" />'+
+            '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">'+
+            '<button class="admin-btn secondary" onclick="showAdminPanel()">取消</button>'+
+            '<button class="admin-btn primary" onclick="adminSave()">保存</button></div></div>';
+    };
+
+    window.adminSave=function(){
+        var data={
+            sort: parseInt(document.getElementById('f_sort').value)||0,
+            title_zh: document.getElementById('f_title').value,
+            title_en: '',
+            desc_zh: document.getElementById('f_desc').value,
+            desc_en: '',
+            filename: document.getElementById('f_filename').value,
+            duration: document.getElementById('f_duration').value,
+            cover_gradient: document.getElementById('f_gradient').value,
+            cover_icon: document.getElementById('f_icon').value
+        };
+        adminApi('POST','/blog-videos',data,function(s,r){
+            if(s===201||s===200){showAdminPanel();loadVideos()}
+            else{var e=document.getElementById('formErr');if(e){e.textContent=r.error||'保存失败';e.style.display='block'}}
+        });
+    };
+
+    window.adminEdit=function(id){
+        overlay.innerHTML='<div class="admin-modal" style="width:550px"><div class="admin-status loading">加载中...</div></div>';
+        overlay.classList.add('show');
+        adminApi('GET','/blog-videos/'+id,null,function(s,item){
+            if(s!==200){overlay.innerHTML='<div class="admin-modal"><div class="admin-error" style="display:block">加载失败</div></div>';return}
+            overlay.innerHTML='<div class="admin-modal" style="width:550px">'+
+                '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+                '<h2>编辑视频 #'+id+'</h2>'+
+                '<div class="admin-error" id="formErr" style="display:none"></div>'+
+                '<label>标题</label><input id="f_title" value="'+esc(item.title_zh||'')+'" />'+
+                '<label>描述</label><textarea id="f_desc">'+esc(item.desc_zh||'')+'</textarea>'+
+                '<label>文件名</label><input id="f_filename" value="'+esc(item.filename||'')+'" />'+
+                '<label>时长</label><input id="f_duration" value="'+esc(item.duration||'')+'" />'+
+                '<label>排序</label><input id="f_sort" type="number" value="'+(item.sort||0)+'" />'+
+                '<label>封面渐变</label><input id="f_gradient" value="'+esc(item.cover_gradient||'')+'" />'+
+                '<label>封面图标</label><input id="f_icon" value="'+esc(item.cover_icon||'')+'" />'+
+                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">'+
+                '<button class="admin-btn secondary" onclick="showAdminPanel()">取消</button>'+
+                '<button class="admin-btn primary" onclick="adminUpdate('+id+')">保存</button></div></div>';
+        });
+    };
+
+    window.adminUpdate=function(id){
+        var data={
+            sort: parseInt(document.getElementById('f_sort').value)||0,
+            title_zh: document.getElementById('f_title').value,
+            title_en: '',
+            desc_zh: document.getElementById('f_desc').value,
+            desc_en: '',
+            filename: document.getElementById('f_filename').value,
+            duration: document.getElementById('f_duration').value,
+            cover_gradient: document.getElementById('f_gradient').value,
+            cover_icon: document.getElementById('f_icon').value
+        };
+        adminApi('PUT','/blog-videos/'+id,data,function(s,r){
+            if(s===200){showAdminPanel();loadVideos()}
+            else{var e=document.getElementById('formErr');if(e){e.textContent=r.error||'保存失败';e.style.display='block'}}
+        });
+    };
+
+    window.adminDel=function(id){
+        if(!confirm('确认删除？'))return;
+        adminApi('DELETE','/blog-videos/'+id,null,function(s){if(s===200){showAdminPanel();loadVideos()}});
+    };
+
+    window.adminUpload=function(){
+        overlay.innerHTML='<div class="admin-modal" style="width:480px">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<h2>上传视频</h2>'+
+            '<div class="admin-error" id="uploadErr" style="display:none"></div>'+
+            '<label>选择视频文件</label>'+
+            '<input type="file" id="uploadFile" accept=".mp4,.flv,.avi,.mov,.mkv" />'+
+            '<div class="progress-bar"><div class="fill" id="uploadFill"></div><div class="label" id="uploadLabel">等待上传</div></div>'+
+            '<button class="admin-btn primary" style="width:100%;justify-content:center" onclick="doUpload()">开始上传</button></div>';
+        overlay.classList.add('show');
+    };
+
+    window.doUpload=function(){
+        var fi=document.getElementById('uploadFile');
+        if(!fi||!fi.files||!fi.files[0]){alert('请选择文件');return}
+        var file=fi.files[0];
+        var CHUNK=1024*1024;
+        var total=Math.ceil(file.size/CHUNK);
+        var fill=document.getElementById('uploadFill');
+        var label=document.getElementById('uploadLabel');
+        if(label)label.textContent='上传中 0%';
+        if(fill)fill.style.width='0%';
+        var cur=0;
+        function next(){
+            var start=cur*CHUNK;
+            var end=Math.min(start+CHUNK,file.size);
+            var chunk=file.slice(start,end);
+            var xhr=new XMLHttpRequest();
+            xhr.open('POST',API+'/upload/blog-video?chunk='+cur+'&total='+total,true);
+            xhr.setRequestHeader('Authorization','Bearer '+adminToken);
+            xhr.setRequestHeader('X-Filename',file.name);
+            xhr.onload=function(){
+                if(xhr.status===201){
+                    cur++;
+                    var pct=Math.round(cur/total*100);
+                    if(fill)fill.style.width=pct+'%';
+                    if(label)label.textContent='上传中 '+pct+'% ('+cur+'/'+total+')';
+                    if(cur<total){next()}
+                    else{
+                        if(fill)fill.style.width='100%';
+                        if(label)label.textContent='上传完成 ✅';
+                        setTimeout(function(){showAdminPanel();loadVideos()},1000);
+                    }
+                }else{
+                    try{var r=JSON.parse(xhr.responseText);alert(r.error||'上传失败')}catch(e){alert('上传失败')}
+                }
+            };
+            xhr.onerror=function(){alert('网络错误')};
+            xhr.send(chunk);
+        }
+        next();
+    };
+
+    window.adminLogout=function(){
+        adminToken='';adminUser='';
+        sSet('blog-admin-token','');sSet('blog-admin-user','');
+        overlay.classList.remove('show');
+    };
+
+    // ===== 初始化 =====
+    renderGrid();
+    loadVideos();
+})();
+</script>
+</body>
+</html>
