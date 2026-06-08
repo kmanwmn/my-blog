@@ -171,7 +171,7 @@ body.light .article-content tr:nth-child(even){background:rgba(0,0,0,.02)}
     (function(){
         var saved = null;
         try{ saved = localStorage.getItem('blog-theme'); }catch(e){}
-        if(saved === 'dark') applyTheme('dark');
+        applyTheme(saved === 'dark' ? 'dark' : 'light');
     })();
     themeBtn.onclick = function(){
         var isLight = document.body.classList.contains('light');

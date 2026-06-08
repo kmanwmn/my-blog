@@ -181,7 +181,7 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
         themeBtn.textContent = t === 'light' ? '☀️' : '🌙';
     }
     var saved = sGet('blog-theme', null);
-    if(saved === 'dark') applyTheme('dark');
+    applyTheme(saved === 'dark' ? 'dark' : 'light');
     themeBtn.onclick = function(){
         var isLight = document.body.classList.contains('light');
         applyTheme(isLight ? 'dark' : 'light');
@@ -225,7 +225,6 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
         var h = '';
         for(var i=0;i<list.length;i++){
             var a = list[i];
-            var coverStyle = a.cover_url ? 'background-image:url(' + escapeHtml(a.cover_url) + ')' : '';
             var date = formatDate(a.created_at);
             var tags = '';
             if(a.tags){
@@ -234,8 +233,9 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
                     if(tagArr[t].trim()) tags += '<span>' + escapeHtml(tagArr[t].trim()) + '</span>';
                 }
             }
+            var coverHtml = a.cover_url ? '<div class="article-cover" style="background-image:url(' + escapeHtml(a.cover_url) + ')"></div>' : '';
             h += '<a class="article-card" href="/blog/article.html?id=' + a.id + '">' +
-                '<div class="article-cover" style="' + coverStyle + '"></div>' +
+                coverHtml +
                 '<div class="article-body">' +
                 '<div class="article-title">' + escapeHtml(a.title || '') + '</div>' +
                 '<div class="article-summary">' + escapeHtml(a.summary || '') + '</div>' +
