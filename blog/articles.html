@@ -218,7 +218,7 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
 
     function renderGrid(list){
         if(!list || !list.length){
-            gridEl.innerHTML = '<div class="grid-empty"><div class="icon">📝</div><div class="text">暂无文章</div><div class="sub-text">管理员请按 Ctrl+` 进入后台添加</div></div>';
+            gridEl.innerHTML = '<div class="grid-empty"><div class="icon">📝</div><div class="text">暂无文章</div></div>';
             gridEl.style.display = 'block';
             return;
         }
