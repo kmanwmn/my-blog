@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章 · 个人博客</title>
+<link rel="icon" href="data:,">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;min-height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Microsoft YaHei',sans-serif;background:#03050a;color:#e0e4ee;line-height:1.6;min-height:100%;overflow-x:hidden;transition:background .4s,color .4s}
+body.light{background:#f5f7fa;color:#1a2a3a}
+::selection{background:rgba(0,123,255,0.3)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0e1a}
+::-webkit-scrollbar-thumb{background:#1a3a5a;border-radius:3px}
+body.light ::-webkit-scrollbar-track{background:#eef1f5}
+body.light ::-webkit-scrollbar-thumb{background:#b0b8c8}
+
+/* 导航 */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(3,5,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(74,158,255,.1);padding:14px 0;transition:background .4s}
+body.light nav{background:rgba(245,247,250,.95);border-bottom-color:rgba(0,0,0,.06)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 24px}
+.nav-brand{font-size:.9rem;font-weight:700;color:#fff;text-decoration:none;letter-spacing:1px}
+body.light .nav-brand{color:#1a2a3a}
+.nav-right{display:flex;align-items:center;gap:10px}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(74,158,255,.25);background:rgba(74,158,255,.1);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#4a9eff}
+.theme-btn:hover{background:rgba(74,158,255,.2)}
+.nav-home{color:#6a8ab5;text-decoration:none;font-size:.82rem;transition:color .3s}
+.nav-home:hover{color:#4a9eff}
+body.light .nav-home{color:#5a6a7a}
+body.light .nav-home:hover{color:#4a9eff}
+
+/* 页面头部 */
+.page-header{padding:110px 24px 20px;text-align:center}
+.page-header h1{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;color:#fff;margin-bottom:6px}
+body.light .page-header h1{color:#1a2a3a}
+.page-header h1 .hl{color:#4a9eff}
+.page-header .sub{font-size:.85rem;color:#6a8ab5;margin-top:4px}
+body.light .page-header .sub{color:#5a6a7a}
+
+/* 搜索框 */
+.search-wrap{max-width:600px;margin:-4px auto 24px;padding:0 24px}
+.search-wrap input{width:100%;padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e0e4ee;font-size:.88rem;font-family:inherit;outline:none;transition:border .3s,background .3s;text-align:center}
+.search-wrap input:focus{border-color:#4a9eff;background:rgba(255,255,255,.06)}
+.search-wrap input::placeholder{color:#5a7a9a}
+body.light .search-wrap input{background:#fff;border-color:rgba(0,0,0,.1);color:#1a2a3a}
+body.light .search-wrap input:focus{border-color:#4a9eff}
+body.light .search-wrap input::placeholder{color:#8a9aa8}
+
+/* 文章网格 */
+.grid-wrap{max-width:1100px;margin:0 auto 60px;padding:0 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+
+/* 文章卡片 */
+.article-card{display:flex;flex-direction:column;border-radius:12px;overflow:hidden;text-decoration:none;transition:transform .3s,box-shadow .3s;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);cursor:pointer}
+.article-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+body.light .article-card{background:#fff;border-color:rgba(0,0,0,.06)}
+body.light .article-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.1)}
+.article-cover{width:100%;aspect-ratio:16/9;background-size:cover;background-position:center;background-color:#0a1628;flex-shrink:0}
+.article-body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column}
+.article-title{font-size:.95rem;font-weight:600;line-height:1.4;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body.light .article-title{color:#1a2a3a}
+.article-summary{font-size:.8rem;color:#7a8aa5;margin-top:8px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+body.light .article-summary{color:#6a7a8a}
+.article-meta{display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:.74rem;color:#5a7a9a}
+body.light .article-meta{color:#8a9aa8}
+.article-tags{display:flex;gap:4px;flex-wrap:wrap}
+.article-tags span{background:rgba(74,158,255,.12);color:#4a9eff;padding:2px 8px;border-radius:4px;font-size:.68rem}
+body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
+
+/* 加载动画 */
+.loading-state{text-align:center;padding:60px 20px;color:#5a7a9a}
+.loading-spinner{width:32px;height:32px;border:3px solid rgba(74,158,255,.15);border-top-color:#4a9eff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 空状态 */
+.grid-empty{text-align:center;padding:80px 20px;color:#6a8ab5}
+.grid-empty .icon{font-size:3.5rem;margin-bottom:12px;opacity:.5}
+.grid-empty .text{font-size:.9rem}
+.grid-empty .sub-text{font-size:.78rem;color:#5a7a9a;margin-top:6px}
+
+/* 错误状态 */
+.error-state{text-align:center;padding:60px 20px;color:#e04040}
+.error-state .icon{font-size:3rem;margin-bottom:12px;opacity:.7}
+
+/* 后台管理面板 */
+.admin-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;animation:fadeIn .25s ease;padding:20px}
+.admin-overlay.show{display:flex}
+.admin-modal{background:#0e121f;border:1px solid rgba(74,158,255,.2);border-radius:16px;padding:28px;max-height:85vh;overflow-y:auto;width:900px;max-width:100%;color:#e0e4ee;position:relative}
+.admin-modal.small{width:380px}
+.admin-modal h2{font-size:1.1rem;margin-bottom:16px;color:#4a9eff;font-weight:600}
+.admin-modal input,.admin-modal textarea,.admin-modal select{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e0e4ee;font-size:.85rem;font-family:inherit;margin-bottom:10px;outline:none;transition:border .3s}
+.admin-modal input:focus,.admin-modal textarea:focus{border-color:#4a9eff}
+.admin-modal textarea{min-height:70px;resize:vertical}
+.admin-modal label{display:block;font-size:.76rem;color:#8a9bb5;margin-bottom:3px;font-weight:500}
+.admin-btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:.82rem;font-weight:500;transition:all .3s;font-family:inherit}
+.admin-btn.primary{background:#4a9eff;color:#fff}
+.admin-btn.primary:hover{background:#3a8aee}
+.admin-btn.danger{background:#e04040;color:#fff}
+.admin-btn.danger:hover{background:#cc3030}
+.admin-btn.secondary{background:rgba(255,255,255,.08);color:#8a9bb5}
+.admin-btn.secondary:hover{background:rgba(255,255,255,.12);color:#e0e4ee}
+.admin-btn.small{padding:5px 10px;font-size:.72rem}
+.admin-close{position:absolute;top:14px;right:16px;cursor:pointer;font-size:1.3rem;color:#5a6a7a;transition:color .3s;background:none;border:none;z-index:1;line-height:1}
+.admin-close:hover{color:#e0e4ee}
+.admin-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem}
+.admin-table th{color:#4a9eff;font-weight:600;font-size:.72rem;letter-spacing:1px}
+.admin-table td{color:#b0c0d0}
+.admin-table .col-title{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-error{color:#e04040;font-size:.8rem;margin-bottom:10px;padding:8px 12px;background:rgba(224,64,64,.1);border-radius:6px;display:none}
+.admin-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.admin-status{padding:3px 8px;border-radius:4px;font-size:.68rem}
+.admin-status.loading{background:rgba(74,158,255,.1);color:#4a9eff}
+
+/* 响应式 */
+@media(max-width:768px){
+    .grid{grid-template-columns:1fr;gap:16px}
+    .search-wrap{margin:-4px auto 16px}
+    .nav-inner{padding:0 16px}
+    .admin-modal{padding:20px}
+}
+@media(max-width:480px){
+    .page-header{padding:95px 16px 16px}
+    .article-summary{-webkit-line-clamp:2}
+}
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">个人博客</a>
+        <div class="nav-right">
+            <button class="theme-btn" id="themeBtn">☀️</button>
+            <a href="/" class="nav-home">← 首页</a>
+        </div>
+    </div>
+</nav>
+
+<!-- 页面头部 -->
+<div class="page-header">
+    <h1><span class="hl">文</span>章</h1>
+    <p class="sub">技术文章与笔记</p>
+</div>
+
+<!-- 搜索框 -->
+<div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="搜索文章..." />
+</div>
+
+<!-- 文章列表 -->
+<div class="grid-wrap" id="gridView">
+    <div class="loading-state" id="loadingState">
+        <div class="loading-spinner"></div>
+        <div>加载中...</div>
+    </div>
+    <div class="grid" id="gridContainer" style="display:none"></div>
+</div>
+
+<!-- 管理后台遮罩 -->
+<div class="admin-overlay" id="adminOverlay"></div>
+
+<script>
+(function(){
+    var API = '/api';
+    var overlay = document.getElementById('adminOverlay');
+    var adminToken = null, adminUser = null;
+    var searchTimer = null;
+
+    // ===== localStorage 工具 =====
+    function sGet(k, d){try{var v=localStorage.getItem(k);return v!==null?v:d}catch(e){return d}}
+    function sSet(k, v){try{localStorage.setItem(k,v)}catch(e){}}
+
+    // ===== 主题切换 =====
+    var themeBtn = document.getElementById('themeBtn');
+    function applyTheme(t){
+        document.body.classList.toggle('light', t === 'light');
+        themeBtn.textContent = t === 'light' ? '☀️' : '🌙';
+    }
+    var saved = sGet('blog-theme', null);
+    if(saved === 'dark') applyTheme('dark');
+    themeBtn.onclick = function(){
+        var isLight = document.body.classList.contains('light');
+        applyTheme(isLight ? 'dark' : 'light');
+        sSet('blog-theme', isLight ? 'dark' : 'light');
+    };
+
+    // ===== 文章列表 =====
+    var articles = [];
+    var loadingEl = document.getElementById('loadingState');
+    var gridEl = document.getElementById('gridContainer');
+
+    function loadArticles(search){
+        var url = API + '/blog-articles?page=1&page_size=50';
+        if(search) url += '&search=' + encodeURIComponent(search);
+        loadingEl.style.display = 'block';
+        gridEl.style.display = 'none';
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.timeout = 8000;
+        xhr.onload = function(){
+            loadingEl.style.display = 'none';
+            if(xhr.status === 200){
+                try{
+                    var data = JSON.parse(xhr.responseText);
+                    articles = data.items || [];
+                    renderGrid(articles);
+                }catch(e){ showError('数据解析失败'); }
+            } else { showError('加载失败'); }
+        };
+        xhr.onerror = function(){ loadingEl.style.display = 'none'; showError('网络错误'); };
+        xhr.ontimeout = function(){ loadingEl.style.display = 'none'; showError('加载超时'); };
+        xhr.send();
+    }
+
+    function renderGrid(list){
+        if(!list || !list.length){
+            gridEl.innerHTML = '<div class="grid-empty"><div class="icon">📝</div><div class="text">暂无文章</div><div class="sub-text">管理员请按 Ctrl+` 进入后台添加</div></div>';
+            gridEl.style.display = 'block';
+            return;
+        }
+        var h = '';
+        for(var i=0;i<list.length;i++){
+            var a = list[i];
+            var coverStyle = a.cover_url ? 'background-image:url(' + escapeHtml(a.cover_url) + ')' : '';
+            var date = formatDate(a.created_at);
+            var tags = '';
+            if(a.tags){
+                var tagArr = a.tags.split(',');
+                for(var t=0;t<tagArr.length;t++){
+                    if(tagArr[t].trim()) tags += '<span>' + escapeHtml(tagArr[t].trim()) + '</span>';
+                }
+            }
+            h += '<a class="article-card" href="/blog/article.html?id=' + a.id + '">' +
+                '<div class="article-cover" style="' + coverStyle + '"></div>' +
+                '<div class="article-body">' +
+                '<div class="article-title">' + escapeHtml(a.title || '') + '</div>' +
+                '<div class="article-summary">' + escapeHtml(a.summary || '') + '</div>' +
+                '<div class="article-meta">' +
+                '<span>' + date + '</span>' +
+                '<div class="article-tags">' + tags + '</div>' +
+                '</div></div></a>';
+        }
+        gridEl.innerHTML = h;
+        gridEl.style.display = 'grid';
+    }
+
+    function showError(msg){
+        gridEl.innerHTML = '<div class="error-state"><div class="icon">⚠️</div><div>' + msg + '</div></div>';
+        gridEl.style.display = 'block';
+    }
+
+    function formatDate(t){
+        if(!t)return'';
+        try{
+            var d=new Date(t.replace(' ','T'));
+            return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+        }catch(e){return t||''}
+    }
+
+    function escapeHtml(s){
+        if(!s)return'';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ===== 搜索 =====
+    var searchInput = document.getElementById('searchInput');
+    searchInput.onkeyup = function(){
+        clearTimeout(searchTimer);
+        var val = this.value.trim();
+        searchTimer = setTimeout(function(){ loadArticles(val); }, 400);
+    };
+
+    // ===== 后台管理 =====
+    function showAdminLogin(){
+        overlay.innerHTML='<div class="admin-modal small">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<h2>管理员登录</h2>'+
+            '<div class="admin-error" id="loginErr" style="display:none"></div>'+
+            '<label>用户名</label><input type="text" id="loginUser" value="liyuchen" />'+
+            '<label>密码</label><input type="password" id="loginPass" />'+
+            '<button class="admin-btn primary" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">登录</button></div>';
+        overlay.classList.add('show');
+    }
+
+    window.doLogin = function(){
+        var u=document.getElementById('loginUser').value;
+        var p=document.getElementById('loginPass').value;
+        var err=document.getElementById('loginErr');
+        var xhr=new XMLHttpRequest();
+        xhr.open('POST',API+'/auth',true);
+        xhr.setRequestHeader('Content-Type','application/json');
+        xhr.onload=function(){
+            if(xhr.status===200){
+                var r=JSON.parse(xhr.responseText);
+                adminToken=r.token; adminUser=r.username;
+                sSet('blog-admin-token', adminToken); sSet('blog-admin-user', adminUser);
+                showAdminPanel();
+            }else{
+                if(err){err.textContent='用户名或密码错误';err.style.display='block'}
+            }
+        };
+        xhr.onerror=function(){if(err){err.textContent='无法连接服务器';err.style.display='block'}};
+        xhr.send(JSON.stringify({username:u,password:p}));
+    };
+
+    window.showAdminPanel = function(){
+        if(!adminToken){ showAdminLogin(); return; }
+        overlay.innerHTML='<div class="admin-modal">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<div class="admin-toolbar"><h2>文章管理</h2>'+
+            '<div style="display:flex;gap:8px">'+
+            '<button class="admin-btn primary small" onclick="adminAdd()">+ 写文章</button>'+
+            '<button class="admin-btn secondary small" onclick="adminLogout()">退出</button></div></div>'+
+            '<div id="adminArticleList"><div class="admin-status loading">加载中...</div></div></div>';
+        overlay.classList.add('show');
+        refreshArticleList();
+    };
+
+    window.closeAdmin = function(){
+        overlay.classList.remove('show');
+        destroyEditor();
+    };
+
+    function refreshArticleList(){
+        var el = document.getElementById('adminArticleList');
+        if(!el) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API + '/blog-articles?page=1&page_size=100', true);
+        xhr.onload = function(){
+            if(xhr.status !== 200){
+                el.innerHTML = '<div class="admin-error" style="display:block">加载失败</div>';
+                return;
+            }
+            try{
+                var data = JSON.parse(xhr.responseText);
+                var list = data.items || [];
+                if(!list.length){
+                    el.innerHTML = '<p style="color:#5a7a9a;text-align:center;padding:16px">暂无文章</p>';
+                    return;
+                }
+                var h = '<table class="admin-table"><tr><th>ID</th><th>标题</th><th>标签</th><th>日期</th><th>操作</th></tr>';
+                for(var i=0;i<list.length;i++){
+                    var a = list[i];
+                    var date = formatDate(a.created_at);
+                    h += '<tr><td>' + a.id + '</td><td class="col-title">' + escapeHtml(a.title||'') + '</td><td>' + escapeHtml(a.tags||'') + '</td><td>' + date + '</td>' +
+                        '<td><button class="admin-btn secondary small" onclick="adminEdit(' + a.id + ')">编辑</button> ' +
+                        '<button class="admin-btn danger small" onclick="adminDel(' + a.id + ')">删除</button></td></tr>';
+                }
+                h += '</table>';
+                el.innerHTML = h;
+            }catch(e){
+                el.innerHTML = '<div class="admin-error" style="display:block">数据解析失败</div>';
+            }
+        };
+        xhr.onerror = function(){ if(el) el.innerHTML = '<div class="admin-error" style="display:block">网络错误</div>'; };
+        xhr.send();
+    }
+
+    function adminApi(method, path, body, cb){
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, API + path, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
+        xhr.onload = function(){
+            var r = {};
+            try{ r = JSON.parse(xhr.responseText); }catch(e){}
+            if(cb) cb(xhr.status, r);
+        };
+        xhr.onerror = function(){ if(cb) cb(0, {error:'网络错误'}); };
+        xhr.send(body ? JSON.stringify(body) : null);
+    }
+
+    // ===== Vditor 编辑器 =====
+    var currentEditor = null;
+
+    function destroyEditor(){
+        if(currentEditor){
+            try{ currentEditor.destroy(); }catch(e){}
+            currentEditor = null;
+        }
+    }
+
+    function initVditor(content, cb){
+        // 需要确保 #vditor 元素存在
+        var el = document.getElementById('vditor');
+        if(!el) return;
+        destroyEditor();
+        currentEditor = new Vditor('vditor', {
+            height: 420,
+            mode: 'sv',
+            placeholder: '使用 Markdown 编写文章内容...',
+            toolbar: ['emoji','headings','bold','italic','strike','|',
+                'list','ordered-list','check','outdent','indent','|',
+                'quote','line','code','inline-code','|',
+                'upload','link','table','edit-mode','|',
+                'undo','redo','fullscreen','outline','preview'],
+            cache: { enable: false },
+            upload: {
+                handler: function(files){
+                    handleImageUpload(files);
+                }
+            },
+            after: function(){
+                if(content) currentEditor.setValue(content);
+                if(cb) cb();
+            }
+        });
+    }
+
+    function handleImageUpload(files){
+        var file = files && files[0];
+        if(!file) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', API + '/upload/blog-image', true);
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+        xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
+        xhr.onload = function(){
+            if(xhr.status === 201){
+                try{
+                    var r = JSON.parse(xhr.responseText);
+                    if(r.url && currentEditor){
+                        currentEditor.insertValue('\n![](' + r.url + ')\n');
+                    }
+                }catch(e){ alert('图片上传成功但解析失败'); }
+            } else { alert('图片上传失败'); }
+        };
+        xhr.onerror = function(){ alert('图片上传失败：网络错误'); };
+        xhr.send(file);
+    }
+
+    // ===== 新增文章 =====
+    window.adminAdd = function(){
+        destroyEditor();
+        overlay.innerHTML = '<div class="admin-modal" style="width:920px">' +
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>' +
+            '<h2>写文章</h2>' +
+            '<div class="admin-error" id="formErr" style="display:none"></div>' +
+            '<div style="display:flex;gap:12px">' +
+            '<div style="flex:1"><label>标题</label><input id="f_title" /></div>' +
+            '<div style="width:100px"><label>排序</label><input id="f_sort" type="number" value="0" /></div>' +
+            '</div>' +
+            '<label>摘要</label><textarea id="f_summary" rows="2" placeholder="文章摘要，显示在卡片上"></textarea>' +
+            '<div style="display:flex;gap:12px">' +
+            '<div style="flex:1"><label>封面 URL</label><input id="f_cover" placeholder="可选，图片直链" /></div>' +
+            '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" placeholder="C++,Linux,网络" /></div>' +
+            '</div>' +
+            '<label>内容（Markdown）</label><div id="vditor"></div>' +
+            '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+            '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
+            '<button class="admin-btn primary" onclick="adminSave()">发布文章</button></div></div>';
+        overlay.classList.add('show');
+        initVditor('');
+    };
+
+    window.adminSave = function(){
+        var title = document.getElementById('f_title').value.trim();
+        if(!title){ alert('请输入标题'); return; }
+        var content = currentEditor ? currentEditor.getValue() : '';
+        if(!content){ alert('请输入文章内容'); return; }
+        var data = {
+            title: title,
+            summary: document.getElementById('f_summary').value.trim(),
+            content: content,
+            cover_url: document.getElementById('f_cover').value.trim(),
+            tags: document.getElementById('f_tags').value.trim(),
+            sort: parseInt(document.getElementById('f_sort').value) || 0
+        };
+        adminApi('POST', '/blog-articles', data, function(s, r){
+            if(s === 201 || s === 200){
+                closeAdmin();
+                loadArticles(document.getElementById('searchInput').value.trim());
+            } else {
+                var err = document.getElementById('formErr');
+                if(err){ err.textContent = r.error || '保存失败'; err.style.display = 'block'; }
+            }
+        });
+    };
+
+    // ===== 编辑文章 =====
+    window.adminEdit = function(id){
+        destroyEditor();
+        overlay.innerHTML = '<div class="admin-modal" style="width:920px"><div class="admin-status loading">加载中...</div></div>';
+        overlay.classList.add('show');
+        adminApi('GET', '/blog-articles/' + id, null, function(s, item){
+            if(s !== 200){
+                overlay.innerHTML = '<div class="admin-modal"><div class="admin-error" style="display:block">加载失败</div></div>';
+                return;
+            }
+            overlay.innerHTML = '<div class="admin-modal" style="width:920px">' +
+                '<button class="admin-close" onclick="closeAdmin()">&times;</button>' +
+                '<h2>编辑文章 #' + id + '</h2>' +
+                '<div class="admin-error" id="formErr" style="display:none"></div>' +
+                '<div style="display:flex;gap:12px">' +
+                '<div style="flex:1"><label>标题</label><input id="f_title" value="' + escapeAttr(item.title||'') + '" /></div>' +
+                '<div style="width:100px"><label>排序</label><input id="f_sort" type="number" value="' + (item.sort||0) + '" /></div>' +
+                '</div>' +
+                '<label>摘要</label><textarea id="f_summary" rows="2">' + escapeHtml(item.summary||'') + '</textarea>' +
+                '<div style="display:flex;gap:12px">' +
+                '<div style="flex:1"><label>封面 URL</label><input id="f_cover" value="' + escapeAttr(item.cover_url||'') + '" /></div>' +
+                '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" value="' + escapeAttr(item.tags||'') + '" /></div>' +
+                '</div>' +
+                '<label>内容（Markdown）</label><div id="vditor"></div>' +
+                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+                '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
+                '<button class="admin-btn primary" onclick="adminUpdate(' + id + ')">保存</button></div></div>';
+            initVditor(item.content || '', function(){
+                // Vditor 加载完成后已有内容
+            });
+        });
+    };
+
+    window.adminUpdate = function(id){
+        var title = document.getElementById('f_title').value.trim();
+        if(!title){ alert('请输入标题'); return; }
+        var content = currentEditor ? currentEditor.getValue() : '';
+        var data = {
+            title: title,
+            summary: document.getElementById('f_summary').value.trim(),
+            content: content,
+            cover_url: document.getElementById('f_cover').value.trim(),
+            tags: document.getElementById('f_tags').value.trim(),
+            sort: parseInt(document.getElementById('f_sort').value) || 0
+        };
+        adminApi('PUT', '/blog-articles/' + id, data, function(s, r){
+            if(s === 200){
+                closeAdmin();
+                loadArticles(document.getElementById('searchInput').value.trim());
+            } else {
+                var err = document.getElementById('formErr');
+                if(err){ err.textContent = r.error || '保存失败'; err.style.display = 'block'; }
+            }
+        });
+    };
+
+    // ===== 删除文章 =====
+    window.adminDel = function(id){
+        if(!confirm('确认删除此文章？')) return;
+        adminApi('DELETE', '/blog-articles/' + id, null, function(s){
+            if(s === 200){
+                refreshArticleList();
+                loadArticles(document.getElementById('searchInput').value.trim());
+            }
+        });
+    };
+
+    // ===== 登出 =====
+    window.adminLogout = function(){
+        adminToken = null;
+        adminUser = null;
+        sSet('blog-admin-token', '');
+        sSet('blog-admin-user', '');
+        showAdminLogin();
+    };
+
+    // ===== 工具函数 =====
+    function escapeAttr(s){
+        if(!s)return '';
+        return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ===== 键盘快捷键 =====
+    document.addEventListener('keydown', function(e){
+        if(e.ctrlKey && e.key === '`'){
+            e.preventDefault();
+            if(overlay.classList.contains('show')){
+                closeAdmin();
+            } else {
+                adminToken = sGet('blog-admin-token', null);
+                adminUser = sGet('blog-admin-user', null);
+                if(adminToken){
+                    showAdminPanel();
+                } else {
+                    showAdminLogin();
+                }
+            }
+        }
+    });
+
+    // ===== 加载 =====
+    loadArticles('');
+})();
+</script>
+
+<!-- Vditor CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.js"></script>
+
+</body>
+</html>

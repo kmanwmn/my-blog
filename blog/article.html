@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章 · 个人博客</title>
+<link rel="icon" href="data:,">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;min-height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Microsoft YaHei',sans-serif;background:#03050a;color:#e0e4ee;line-height:1.6;min-height:100%;overflow-x:hidden;transition:background .4s,color .4s}
+body.light{background:#f5f7fa;color:#1a2a3a}
+::selection{background:rgba(0,123,255,0.3)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0e1a}
+::-webkit-scrollbar-thumb{background:#1a3a5a;border-radius:3px}
+body.light ::-webkit-scrollbar-track{background:#eef1f5}
+body.light ::-webkit-scrollbar-thumb{background:#b0b8c8}
+
+/* 导航 */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(3,5,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(74,158,255,.1);padding:14px 0;transition:background .4s}
+body.light nav{background:rgba(245,247,250,.95);border-bottom-color:rgba(0,0,0,.06)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:0 24px}
+.nav-brand{font-size:.9rem;font-weight:700;color:#fff;text-decoration:none;letter-spacing:1px}
+body.light .nav-brand{color:#1a2a3a}
+.nav-right{display:flex;align-items:center;gap:10px}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(74,158,255,.25);background:rgba(74,158,255,.1);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#4a9eff}
+.theme-btn:hover{background:rgba(74,158,255,.2)}
+.nav-back{color:#6a8ab5;text-decoration:none;font-size:.82rem;transition:color .3s}
+.nav-back:hover{color:#4a9eff}
+body.light .nav-back{color:#5a6a7a}
+body.light .nav-back:hover{color:#4a9eff}
+
+/* 文章详情 */
+.article-wrap{max-width:800px;margin:0 auto;padding:100px 24px 60px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* 封面图 */
+.article-cover{width:100%;aspect-ratio:16/7;border-radius:14px;background-size:cover;background-position:center;background-color:#0a1628;margin-bottom:28px;overflow:hidden}
+
+/* 头部信息 */
+.article-header{margin-bottom:28px}
+.article-title{font-size:clamp(1.3rem,3vw,1.8rem);font-weight:700;color:#fff;line-height:1.35;margin-bottom:10px}
+body.light .article-title{color:#1a2a3a}
+.article-meta{display:flex;align-items:center;gap:16px;font-size:.82rem;color:#6a8ab5;flex-wrap:wrap}
+body.light .article-meta{color:#8a9aa8}
+.article-meta .date{display:flex;align-items:center;gap:4px}
+.article-tags{display:flex;gap:6px;flex-wrap:wrap}
+.article-tags span{background:rgba(74,158,255,.12);color:#4a9eff;padding:2px 10px;border-radius:4px;font-size:.72rem}
+body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
+
+/* 分割线 */
+.article-divider{height:1px;background:rgba(255,255,255,.06);margin-bottom:28px}
+body.light .article-divider{background:rgba(0,0,0,.06)}
+
+/* Markdown 渲染 */
+.article-content{font-size:.92rem;line-height:1.85;color:#c8d0dc}
+body.light .article-content{color:#2a3a4a}
+.article-content h1,.article-content h2,.article-content h3,.article-content h4,.article-content h5,.article-content h6{margin:1.5em 0 .6em;color:#fff;font-weight:600;line-height:1.3}
+body.light .article-content h1,body.light .article-content h2,body.light .article-content h3,body.light .article-content h4,body.light .article-content h5,body.light .article-content h6{color:#1a2a3a}
+.article-content h1{font-size:1.5rem;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:.3em}
+body.light .article-content h1{border-bottom-color:rgba(0,0,0,.06)}
+.article-content h2{font-size:1.25rem}
+.article-content h3{font-size:1.1rem}
+.article-content p{margin:.8em 0}
+.article-content a{color:#4a9eff;text-decoration:none}
+.article-content a:hover{text-decoration:underline}
+.article-content strong{color:#fff;font-weight:600}
+body.light .article-content strong{color:#1a2a3a}
+.article-content em{font-style:italic}
+.article-content code{background:rgba(255,255,255,.06);color:#80c8ff;padding:2px 7px;border-radius:4px;font-size:.85em;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+body.light .article-content code{background:rgba(0,0,0,.04);color:#e04080}
+.article-content pre{background:#0a0e1a;border:1px solid rgba(255,255,255,.06);padding:18px;border-radius:10px;overflow-x:auto;margin:1.2em 0}
+body.light .article-content pre{background:#f0f2f5;border-color:rgba(0,0,0,.06)}
+.article-content pre code{background:none;padding:0;color:inherit;font-size:.84rem}
+.article-content blockquote{border-left:3px solid #4a9eff;padding:4px 0 4px 18px;margin:1em 0;color:#7a8aa5;background:rgba(74,158,255,.03);border-radius:0 6px 6px 0}
+body.light .article-content blockquote{color:#6a7a8a;background:rgba(74,158,255,.04)}
+.article-content blockquote p{margin:.4em 0}
+.article-content img{max-width:100%;border-radius:10px;margin:1em 0;display:block}
+.article-content ul,.article-content ol{padding-left:24px;margin:.6em 0}
+.article-content li{margin:.3em 0}
+.article-content hr{border:none;height:1px;background:rgba(255,255,255,.08);margin:2em 0}
+body.light .article-content hr{background:rgba(0,0,0,.08)}
+.article-content table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.88rem}
+.article-content th,.article-content td{border:1px solid rgba(255,255,255,.1);padding:8px 14px;text-align:left}
+body.light .article-content th,body.light .article-content td{border-color:rgba(0,0,0,.1)}
+.article-content th{background:rgba(74,158,255,.06);color:#4a9eff;font-weight:600}
+body.light .article-content th{background:rgba(74,158,255,.04);color:#3a8aee}
+.article-content tr:nth-child(even){background:rgba(255,255,255,.02)}
+body.light .article-content tr:nth-child(even){background:rgba(0,0,0,.02)}
+
+/* 加载/错误/空状态 */
+.state-wrap{max-width:800px;margin:0 auto;padding:120px 24px;text-align:center}
+.loading-spinner{width:36px;height:36px;border:3px solid rgba(74,158,255,.15);border-top-color:#4a9eff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.state-text{color:#6a8ab5;font-size:.9rem}
+.state-text.error{color:#e04040}
+.state-icon{font-size:3rem;margin-bottom:12px;opacity:.6}
+
+/* 响应式 */
+@media(max-width:768px){
+    .article-wrap{padding:90px 16px 40px}
+    .article-cover{aspect-ratio:16/9;border-radius:10px;margin-bottom:20px}
+    .article-header{margin-bottom:20px}
+    .article-divider{margin-bottom:20px}
+    .article-content{font-size:.88rem}
+}
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">个人博客</a>
+        <div class="nav-right">
+            <button class="theme-btn" id="themeBtn">☀️</button>
+            <a href="/blog/articles.html" class="nav-back">&larr; 文章</a>
+        </div>
+    </div>
+</nav>
+
+<!-- 加载态 -->
+<div class="state-wrap" id="loadingState">
+    <div class="loading-spinner"></div>
+    <div class="state-text">加载中...</div>
+</div>
+
+<!-- 错误态 -->
+<div class="state-wrap" id="errorState" style="display:none">
+    <div class="state-icon">⚠️</div>
+    <div class="state-text error" id="errorMsg">文章不存在</div>
+</div>
+
+<!-- 文章内容 -->
+<div class="article-wrap" id="articleWrap" style="display:none">
+    <div class="article-cover" id="articleCover"></div>
+    <div class="article-header">
+        <h1 class="article-title" id="articleTitle"></h1>
+        <div class="article-meta">
+            <span class="date" id="articleDate"></span>
+            <div class="article-tags" id="articleTags"></div>
+        </div>
+    </div>
+    <div class="article-divider"></div>
+    <div class="article-content" id="articleContent"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+(function(){
+    // ===== 获取 URL 参数 =====
+    var id = (function(){
+        var m = location.search.match(/id=(\d+)/);
+        return m ? parseInt(m[1]) : 0;
+    })();
+
+    if(!id){
+        showError('缺少文章 ID');
+        return;
+    }
+
+    var API = '/api';
+
+    // ===== 主题切换 =====
+    var themeBtn = document.getElementById('themeBtn');
+    function applyTheme(t){
+        document.body.classList.toggle('light', t === 'light');
+        themeBtn.textContent = t === 'light' ? '☀️' : '🌙';
+    }
+    (function(){
+        var saved = null;
+        try{ saved = localStorage.getItem('blog-theme'); }catch(e){}
+        if(saved === 'dark') applyTheme('dark');
+    })();
+    themeBtn.onclick = function(){
+        var isLight = document.body.classList.contains('light');
+        applyTheme(isLight ? 'dark' : 'light');
+        try{ localStorage.setItem('blog-theme', isLight ? 'dark' : 'light'); }catch(e){}
+    };
+
+    // ===== 加载文章 =====
+    var loadingEl = document.getElementById('loadingState');
+    var errorEl = document.getElementById('errorState');
+    var errorMsg = document.getElementById('errorMsg');
+    var articleWrap = document.getElementById('articleWrap');
+
+    function loadArticle(){
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API + '/blog-articles/' + id, true);
+        xhr.timeout = 8000;
+        xhr.onload = function(){
+            if(xhr.status === 200){
+                try{
+                    var article = JSON.parse(xhr.responseText);
+                    renderArticle(article);
+                }catch(e){ showError('数据解析失败'); }
+            } else {
+                showError(xhr.status === 404 ? '文章不存在' : '加载失败');
+            }
+        };
+        xhr.onerror = function(){ showError('网络错误'); };
+        xhr.ontimeout = function(){ showError('加载超时'); };
+        xhr.send();
+    }
+
+    function renderArticle(a){
+        // 标题
+        document.getElementById('articleTitle').textContent = a.title || '';
+
+        // 封面
+        var coverEl = document.getElementById('articleCover');
+        if(a.cover_url){
+            coverEl.style.backgroundImage = 'url(' + escapeAttr(a.cover_url) + ')';
+            coverEl.style.display = 'block';
+        } else {
+            coverEl.style.display = 'none';
+        }
+
+        // 日期
+        document.getElementById('articleDate').textContent = '📅 ' + formatDate(a.created_at);
+
+        // 标签
+        var tagsEl = document.getElementById('articleTags');
+        if(a.tags){
+            var arr = a.tags.split(',');
+            var h = '';
+            for(var i=0;i<arr.length;i++){
+                if(arr[i].trim()) h += '<span>' + escapeHtml(arr[i].trim()) + '</span>';
+            }
+            tagsEl.innerHTML = h;
+        }
+
+        // Markdown 渲染
+        var contentEl = document.getElementById('articleContent');
+        if(a.content){
+            // 配置 marked 选项
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            contentEl.innerHTML = marked.parse(a.content);
+        }
+
+        // 页面标题
+        document.title = (a.title || '文章') + ' · 个人博客';
+
+        // 显示
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        articleWrap.style.display = 'block';
+    }
+
+    function showError(msg){
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorMsg.textContent = msg;
+    }
+
+    function formatDate(t){
+        if(!t) return '';
+        try{
+            var d = new Date(t.replace(' ', 'T'));
+            var y = d.getFullYear();
+            var m = (d.getMonth()+1);
+            var day = d.getDate();
+            return y + '年' + m + '月' + day + '日';
+        }catch(e){ return t||''; }
+    }
+
+    function escapeHtml(s){
+        if(!s)return'';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function escapeAttr(s){
+        if(!s)return'';
+        return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ===== 加载 =====
+    loadArticle();
+})();
+</script>
+</body>
+</html>

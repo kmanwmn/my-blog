@@ -13,6 +13,8 @@ echo "复制文件到 Nginx 目录..."
 sudo cp index.html /var/www/blog/
 sudo mkdir -p /var/www/blog/blog
 sudo cp blog/tech.html /var/www/blog/blog/
+sudo cp blog/articles.html /var/www/blog/blog/
+sudo cp blog/article.html /var/www/blog/blog/
 
 echo "重载 Nginx..."
 sudo systemctl reload nginx
