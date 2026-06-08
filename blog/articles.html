@@ -432,6 +432,37 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
         xhr.send(file);
     }
 
+    // ===== 封面上传 =====
+    window.selectCover = function(){
+        document.getElementById('f_cover_file').click();
+    };
+
+    window.uploadCover = function(input){
+        var file = input && input.files && input.files[0];
+        if(!file) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', API + '/upload/blog-image', true);
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+        xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
+        xhr.onload = function(){
+            if(xhr.status === 201){
+                try{
+                    var r = JSON.parse(xhr.responseText);
+                    if(r.url){
+                        document.getElementById('f_cover').value = r.url;
+                        // 显示预览
+                        var preview = document.getElementById('coverPreview');
+                        var img = document.getElementById('coverPreviewImg');
+                        img.src = r.url;
+                        preview.style.display = 'block';
+                    }
+                }catch(e){ alert('上传成功但解析失败'); }
+            } else { alert('封面上传失败'); }
+        };
+        xhr.onerror = function(){ alert('封面上传失败：网络错误'); };
+        xhr.send(file);
+    };
+
     // ===== 新增文章 =====
     window.adminAdd = function(){
         destroyEditor();
@@ -445,7 +476,14 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
             '</div>' +
             '<label>摘要</label><textarea id="f_summary" rows="2" placeholder="文章摘要，显示在卡片上"></textarea>' +
             '<div style="display:flex;gap:12px">' +
-            '<div style="flex:1"><label>封面 URL</label><input id="f_cover" placeholder="可选，图片直链" /></div>' +
+            '<div style="flex:1"><label>封面图片</label>' +
+            '<div style="display:flex;gap:8px;align-items:center">' +
+            '<input id="f_cover" placeholder="图片直链或点击上传" style="flex:1" />' +
+            '<button class="admin-btn secondary small" onclick="selectCover()">选择图片</button>' +
+            '<input type="file" id="f_cover_file" accept="image/*" style="display:none" onchange="uploadCover(this)" />' +
+            '</div>' +
+            '<div id="coverPreview" style="margin-top:6px;max-width:160px;display:none;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">' +
+            '<img id="coverPreviewImg" style="width:100%;display:block" /></div></div>' +
             '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" placeholder="C++,Linux,网络" /></div>' +
             '</div>' +
             '<label>内容（Markdown）</label><div id="vditor"></div>' +
@@ -500,7 +538,14 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
                 '</div>' +
                 '<label>摘要</label><textarea id="f_summary" rows="2">' + escapeHtml(item.summary||'') + '</textarea>' +
                 '<div style="display:flex;gap:12px">' +
-                '<div style="flex:1"><label>封面 URL</label><input id="f_cover" value="' + escapeAttr(item.cover_url||'') + '" /></div>' +
+                '<div style="flex:1"><label>封面图片</label>' +
+                '<div style="display:flex;gap:8px;align-items:center">' +
+                '<input id="f_cover" value="' + escapeAttr(item.cover_url||'') + '" placeholder="图片直链或点击上传" style="flex:1" />' +
+                '<button class="admin-btn secondary small" onclick="selectCover()">选择图片</button>' +
+                '<input type="file" id="f_cover_file" accept="image/*" style="display:none" onchange="uploadCover(this)" />' +
+                '</div>' +
+                '<div id="coverPreview" style="margin-top:6px;max-width:160px;display:' + (item.cover_url ? 'block' : 'none') + ';border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">' +
+                '<img id="coverPreviewImg" src="' + escapeAttr(item.cover_url||'') + '" style="width:100%;display:block" /></div></div>' +
                 '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" value="' + escapeAttr(item.tags||'') + '" /></div>' +
                 '</div>' +
                 '<label>内容（Markdown）</label><div id="vditor"></div>' +
