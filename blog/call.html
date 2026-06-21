@@ -422,7 +422,9 @@ body.light .video-placeholder{color:#b0c0d0}
             case 'answer':
                 if(pc){
                     pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
-                    setStatus('connected');
+                    setStatus('connected', '与 ' + targetName + ' 通话中');
+                    dialPanel.classList.remove('show');
+                    hangupBtn2.classList.remove('hidden');
                 }
                 break;
 
@@ -513,6 +515,7 @@ body.light .video-placeholder{color:#b0c0d0}
             }));
             setStatus('connected', '与 ' + targetName + ' 通话中');
             hangupBtn2.classList.remove('hidden');
+            dialPanel.classList.remove('show');
         }).catch(function(err){
             console.error('创建 Answer 失败:', err);
         });
@@ -523,8 +526,6 @@ body.light .video-placeholder{color:#b0c0d0}
     window.answerCall = function(){
         if(!pendingOfferSdp) return;
         answerBtn.classList.add('hidden');
-        callStatusText.textContent = '连接中...';
-        setStatus('connected', '与 ' + targetName + ' 通话中');
         hangupBtn2.classList.remove('hidden');
         handleOffer(pendingOfferSdp);
         pendingOfferSdp = null;
