@@ -84,6 +84,22 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
 .error-state{text-align:center;padding:60px 20px;color:#e04040}
 .error-state .icon{font-size:3rem;margin-bottom:12px;opacity:.7}
 
+/* 专栏导航 */
+.columns-bar{margin:-4px auto 24px;padding:0 24px;max-width:1100px}
+.columns-scroll{display:flex;gap:10px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;-ms-overflow-style:none}
+.columns-scroll::-webkit-scrollbar{display:none}
+.col-item{flex-shrink:0;padding:8px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);cursor:pointer;transition:all .3s;text-align:center;min-width:80px;user-select:none}
+.col-item:hover{border-color:rgba(74,158,255,.3);background:rgba(74,158,255,.06)}
+.col-item.active{border-color:#4a9eff;background:rgba(74,158,255,.12);color:#4a9eff}
+body.light .col-item{border-color:rgba(0,0,0,.08);background:#fff}
+body.light .col-item:hover{border-color:rgba(74,158,255,.3);background:rgba(74,158,255,.04)}
+body.light .col-item.active{border-color:#4a9eff;background:rgba(74,158,255,.08);color:#4a9eff}
+.col-item .col-name{font-size:.82rem;font-weight:500;white-space:nowrap}
+.col-item .col-count{font-size:.68rem;color:#5a7a9a;margin-top:2px}
+.col-item.active .col-count{color:#4a9eff}
+body.light .col-item .col-count{color:#8a9aa8}
+body.light .col-item.active .col-count{color:#4a9eff}
+
 /* 后台管理面板 */
 .admin-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;animation:fadeIn .25s ease;padding:20px}
 .admin-overlay.show{display:flex}
@@ -151,6 +167,11 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
     <input type="text" id="searchInput" placeholder="搜索文章..." />
 </div>
 
+<!-- 专栏导航 -->
+<div class="columns-bar" id="columnsBar" style="display:none">
+    <div class="columns-scroll" id="columnsScroll"></div>
+</div>
+
 <!-- 文章列表 -->
 <div class="grid-wrap" id="gridView">
     <div class="loading-state" id="loadingState">
@@ -169,6 +190,9 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
     var overlay = document.getElementById('adminOverlay');
     var adminToken = null, adminUser = null;
     var searchTimer = null;
+    var columns = [];
+    var activeColumnId = 0;
+    var editColumnId = 0;
 
     // ===== localStorage 工具 =====
     function sGet(k, d){try{var v=localStorage.getItem(k);return v!==null?v:d}catch(e){return d}}
@@ -196,6 +220,7 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
     function loadArticles(search){
         var url = API + '/blog-articles?page=1&page_size=50';
         if(search) url += '&search=' + encodeURIComponent(search);
+        if(activeColumnId > 0) url += '&column_id=' + activeColumnId;
         loadingEl.style.display = 'block';
         gridEl.style.display = 'none';
         var xhr = new XMLHttpRequest();
@@ -215,6 +240,47 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
         xhr.ontimeout = function(){ loadingEl.style.display = 'none'; showError('加载超时'); };
         xhr.send();
     }
+
+    // ===== 专栏导航 =====
+    function loadColumns(){
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API + '/columns', true);
+        xhr.timeout = 8000;
+        xhr.onload = function(){
+            if(xhr.status === 200){
+                try{
+                    columns = JSON.parse(xhr.responseText) || [];
+                    renderColumns(columns);
+                }catch(e){}
+            }
+        };
+        xhr.onerror = function(){};
+        xhr.ontimeout = function(){};
+        xhr.send();
+    }
+
+    function renderColumns(list){
+        var bar = document.getElementById('columnsBar');
+        var scroll = document.getElementById('columnsScroll');
+        if(!list || !list.length){
+            bar.style.display = 'none';
+            return;
+        }
+        var h = '<div class="col-item' + (activeColumnId === 0 ? ' active' : '') + '" data-id="0" onclick="filterColumn(0)"><div class="col-name">全部</div><div class="col-count">全部文章</div></div>';
+        for(var i=0;i<list.length;i++){
+            var c = list[i];
+            var cnt = c.article_count || 0;
+            h += '<div class="col-item' + (activeColumnId === c.id ? ' active' : '') + '" data-id="' + c.id + '" onclick="filterColumn(' + c.id + ')"><div class="col-name">' + escapeHtml(c.name) + '</div><div class="col-count">' + cnt + ' 篇</div></div>';
+        }
+        scroll.innerHTML = h;
+        bar.style.display = 'block';
+    }
+
+    window.filterColumn = function(id){
+        activeColumnId = id;
+        renderColumns(columns);
+        loadArticles(document.getElementById('searchInput').value.trim());
+    };
 
     function renderGrid(list){
         if(!list || !list.length){
@@ -314,6 +380,7 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
             '<div class="admin-toolbar"><h2>文章管理</h2>'+
             '<div style="display:flex;gap:8px">'+
             '<button class="admin-btn primary small" onclick="adminAdd()">+ 写文章</button>'+
+            '<button class="admin-btn secondary small" onclick="showAdminColumns()">专栏管理</button>'+
             '<button class="admin-btn secondary small" onclick="adminLogout()">退出</button></div></div>'+
             '<div id="adminArticleList"><div class="admin-status loading">加载中...</div></div></div>';
         overlay.classList.add('show');
@@ -486,12 +553,15 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
             '<img id="coverPreviewImg" style="width:100%;display:block" /></div></div>' +
             '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" placeholder="C++,Linux,网络" /></div>' +
             '</div>' +
+            '<label>所属专栏</label><select id="f_column_id"><option value="0">无</option></select>' +
             '<label>内容（Markdown）</label><div id="vditor"></div>' +
             '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
             '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
             '<button class="admin-btn primary" onclick="adminSave()">发布文章</button></div></div>';
         overlay.classList.add('show');
         initVditor('');
+        editColumnId = 0;
+        loadColumnSelect();
     };
 
     window.adminSave = function(){
@@ -505,7 +575,8 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
             content: content,
             cover_url: document.getElementById('f_cover').value.trim(),
             tags: document.getElementById('f_tags').value.trim(),
-            sort: parseInt(document.getElementById('f_sort').value) || 0
+            sort: parseInt(document.getElementById('f_sort').value) || 0,
+            column_id: parseInt(document.getElementById('f_column_id').value) || 0
         };
         adminApi('POST', '/blog-articles', data, function(s, r){
             if(s === 201 || s === 200){
@@ -548,10 +619,12 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
                 '<img id="coverPreviewImg" src="' + escapeAttr(item.cover_url||'') + '" style="width:100%;display:block" /></div></div>' +
                 '<div style="flex:1"><label>标签（逗号分隔）</label><input id="f_tags" value="' + escapeAttr(item.tags||'') + '" /></div>' +
                 '</div>' +
+                '<label>所属专栏</label><select id="f_column_id"><option value="0">无</option></select>' +
                 '<label>内容（Markdown）</label><div id="vditor"></div>' +
                 '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
                 '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
                 '<button class="admin-btn primary" onclick="adminUpdate(' + id + ')">保存</button></div></div>';
+            editColumnId = item.column_id || 0;
             initVditor(item.content || '', function(){
                 // Vditor 加载完成后已有内容
             });
@@ -568,7 +641,8 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
             content: content,
             cover_url: document.getElementById('f_cover').value.trim(),
             tags: document.getElementById('f_tags').value.trim(),
-            sort: parseInt(document.getElementById('f_sort').value) || 0
+            sort: parseInt(document.getElementById('f_sort').value) || 0,
+            column_id: parseInt(document.getElementById('f_column_id').value) || 0
         };
         adminApi('PUT', '/blog-articles/' + id, data, function(s, r){
             if(s === 200){
@@ -592,6 +666,136 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
         });
     };
 
+    // ===== 专栏管理 =====
+    window.showAdminColumns = function(){
+        if(!adminToken){ showAdminLogin(); return; }
+        overlay.innerHTML='<div class="admin-modal">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<div class="admin-toolbar"><h2>专栏管理</h2>'+
+            '<div style="display:flex;gap:8px">'+
+            '<button class="admin-btn primary small" onclick="adminColumnAdd()">+ 新建专栏</button>'+
+            '<button class="admin-btn secondary small" onclick="showAdminPanel()">返回文章</button></div></div>'+
+            '<div id="adminColumnList"><div class="admin-status loading">加载中...</div></div></div>';
+        overlay.classList.add('show');
+        refreshColumnList();
+    };
+
+    function refreshColumnList(){
+        var el = document.getElementById('adminColumnList');
+        if(!el) return;
+        adminApi('GET', '/columns', null, function(s, data){
+            if(s !== 200){
+                el.innerHTML = '<div class="admin-error" style="display:block">加载失败</div>';
+                return;
+            }
+            var arr = Array.isArray(data) ? data : (data.items || []);
+            if(!arr.length){
+                el.innerHTML = '<p style="color:#5a7a9a;text-align:center;padding:16px">暂无专栏</p>';
+                return;
+            }
+            var h = '<table class="admin-table"><tr><th>ID</th><th>名称</th><th>描述</th><th>文章数</th><th>排序</th><th>操作</th></tr>';
+            for(var i=0;i<arr.length;i++){
+                var c = arr[i];
+                h += '<tr><td>' + c.id + '</td><td class="col-title">' + escapeHtml(c.name||'') + '</td><td class="col-title">' + escapeHtml(c.description||'') + '</td><td>' + (c.article_count||0) + '</td><td>' + (c.sort||0) + '</td>' +
+                    '<td><button class="admin-btn secondary small" onclick="adminColumnEdit(' + c.id + ')">编辑</button> ' +
+                    '<button class="admin-btn danger small" onclick="adminColumnDel(' + c.id + ')">删除</button></td></tr>';
+            }
+            h += '</table>';
+            el.innerHTML = h;
+        });
+    }
+
+    window.adminColumnAdd = function(){
+        overlay.innerHTML='<div class="admin-modal" style="width:520px">'+
+            '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+            '<h2>新建专栏</h2>'+
+            '<div class="admin-error" id="colFormErr" style="display:none"></div>'+
+            '<label>名称</label><input id="cf_name" />'+
+            '<label>描述</label><textarea id="cf_desc" rows="3" placeholder="专栏描述"></textarea>'+
+            '<label>封面图片</label><input id="cf_cover" placeholder="图片直链" />'+
+            '<label>排序</label><input id="cf_sort" type="number" value="0" />'+
+            '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">'+
+            '<button class="admin-btn secondary" onclick="showAdminColumns()">取消</button>'+
+            '<button class="admin-btn primary" onclick="adminColumnSave()">保存</button></div></div>';
+        overlay.classList.add('show');
+    };
+
+    window.adminColumnSave = function(){
+        var name = document.getElementById('cf_name').value.trim();
+        if(!name){ alert('请输入专栏名称'); return; }
+        var data = {
+            name: name,
+            description: document.getElementById('cf_desc').value.trim(),
+            cover_url: document.getElementById('cf_cover').value.trim(),
+            sort: parseInt(document.getElementById('cf_sort').value) || 0
+        };
+        adminApi('POST', '/columns', data, function(s, r){
+            if(s === 201 || s === 200){
+                showAdminColumns();
+                loadColumns();
+            } else {
+                var err = document.getElementById('colFormErr');
+                if(err){ err.textContent = r.error || '保存失败'; err.style.display = 'block'; }
+            }
+        });
+    };
+
+    window.adminColumnEdit = function(id){
+        overlay.innerHTML='<div class="admin-modal"><div class="admin-status loading">加载中...</div></div>';
+        overlay.classList.add('show');
+        adminApi('GET', '/columns/' + id, null, function(s, c){
+            if(s !== 200){
+                overlay.innerHTML='<div class="admin-modal"><div class="admin-error" style="display:block">加载失败</div></div>';
+                return;
+            }
+            overlay.innerHTML='<div class="admin-modal" style="width:520px">'+
+                '<button class="admin-close" onclick="closeAdmin()">&times;</button>'+
+                '<h2>编辑专栏 #' + id + '</h2>'+
+                '<div class="admin-error" id="colFormErr" style="display:none"></div>'+
+                '<label>名称</label><input id="cf_name" value="' + escapeAttr(c.name||'') + '" />'+
+                '<label>描述</label><textarea id="cf_desc" rows="3">' + escapeHtml(c.description||'') + '</textarea>'+
+                '<label>封面图片</label><input id="cf_cover" value="' + escapeAttr(c.cover_url||'') + '" />'+
+                '<label>排序</label><input id="cf_sort" type="number" value="' + (c.sort||0) + '" />'+
+                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">'+
+                '<button class="admin-btn secondary" onclick="showAdminColumns()">取消</button>'+
+                '<button class="admin-btn primary" onclick="adminColumnUpdate(' + id + ')">保存</button></div></div>';
+            overlay.classList.add('show');
+        });
+    };
+
+    window.adminColumnUpdate = function(id){
+        var name = document.getElementById('cf_name').value.trim();
+        if(!name){ alert('请输入专栏名称'); return; }
+        var data = {
+            name: name,
+            description: document.getElementById('cf_desc').value.trim(),
+            cover_url: document.getElementById('cf_cover').value.trim(),
+            sort: parseInt(document.getElementById('cf_sort').value) || 0
+        };
+        adminApi('PUT', '/columns/' + id, data, function(s, r){
+            if(s === 200){
+                showAdminColumns();
+                loadColumns();
+                loadArticles(document.getElementById('searchInput').value.trim());
+            } else {
+                var err = document.getElementById('colFormErr');
+                if(err){ err.textContent = r.error || '保存失败'; err.style.display = 'block'; }
+            }
+        });
+    };
+
+    window.adminColumnDel = function(id){
+        if(!confirm('确认删除此专栏？')) return;
+        adminApi('DELETE', '/columns/' + id, null, function(s){
+            if(s === 200){
+                refreshColumnList();
+                loadColumns();
+                activeColumnId = 0;
+                loadArticles(document.getElementById('searchInput').value.trim());
+            }
+        });
+    };
+
     // ===== 登出 =====
     window.adminLogout = function(){
         adminToken = null;
@@ -605,6 +809,27 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
     function escapeAttr(s){
         if(!s)return '';
         return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ===== 专栏下拉框 =====
+    function loadColumnSelect(){
+        var sel = document.getElementById('f_column_id');
+        if(!sel) return;
+        adminApi('GET', '/columns', null, function(s, data){
+            if(s !== 200) return;
+            var list = Array.isArray(data) ? data : (data.items || []);
+            sel.innerHTML = '<option value="0">无</option>';
+            for(var i=0;i<list.length;i++){
+                var opt = document.createElement('option');
+                opt.value = list[i].id;
+                opt.textContent = list[i].name;
+                sel.appendChild(opt);
+            }
+            if(editColumnId > 0){
+                sel.value = editColumnId;
+                editColumnId = 0;
+            }
+        });
     }
 
     // ===== 键盘快捷键 =====
@@ -627,6 +852,7 @@ body.light .article-tags span{background:rgba(74,158,255,.08);color:#3a8aee}
 
     // ===== 加载 =====
     loadArticles('');
+    loadColumns();
 })();
 </script>
 
