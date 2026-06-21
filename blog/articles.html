@@ -625,6 +625,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
                 '<button class="admin-btn primary" onclick="adminUpdate(' + id + ')">保存</button></div></div>';
             editColumnId = item.column_id || 0;
+            loadColumnSelect();
             initVditor(item.content || '', function(){
                 // Vditor 加载完成后已有内容
             });
