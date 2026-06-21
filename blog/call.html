@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网络通话 · 个人博客</title>
+<link rel="icon" href="data:,">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Microsoft YaHei',sans-serif;background:#03050a;color:#e0e4ee;overflow:hidden;transition:background .4s,color .4s}
+body.light{background:#f5f7fa;color:#1a2a3a}
+
+/* 导航 */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(3,5,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(74,158,255,.1);padding:14px 0}
+body.light nav{background:rgba(245,247,250,.95);border-bottom-color:rgba(0,0,0,.06)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 24px}
+.nav-brand{font-size:.9rem;font-weight:700;color:#fff;text-decoration:none;letter-spacing:1px}
+body.light .nav-brand{color:#1a2a3a}
+.nav-right{display:flex;align-items:center;gap:10px}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(74,158,255,.25);background:rgba(74,158,255,.1);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#4a9eff}
+.theme-btn:hover{background:rgba(74,158,255,.2)}
+.nav-home{color:#6a8ab5;text-decoration:none;font-size:.82rem;transition:color .3s}
+.nav-home:hover{color:#4a9eff}
+body.light .nav-home{color:#5a6a7a}
+body.light .nav-home:hover{color:#4a9eff}
+
+/* 页面主体 */
+.main-wrap{height:100vh;display:flex;flex-direction:column;padding:70px 0 0}
+
+/* ===== 登录界面 ===== */
+.login-screen{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:40px 36px;width:360px;max-width:100%;text-align:center}
+body.light .login-card{background:#fff;border-color:rgba(0,0,0,.06)}
+.login-card h2{font-size:1.2rem;margin-bottom:6px}
+.login-card .sub{font-size:.82rem;color:#6a8ab5;margin-bottom:24px}
+body.light .login-card .sub{color:#5a6a7a}
+.login-card input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e0e4ee;font-size:.9rem;font-family:inherit;outline:none;transition:border .3s;margin-bottom:14px;text-align:center}
+.login-card input:focus{border-color:#4a9eff}
+body.light .login-card input{background:#fff;border-color:rgba(0,0,0,.1);color:#1a2a3a}
+.login-btn{width:100%;padding:12px;border-radius:10px;border:none;background:#4a9eff;color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .3s;font-family:inherit}
+.login-btn:hover{background:#3a8aee}
+.login-btn:disabled{background:#2a4a6a;cursor:not-allowed}
+.login-error{color:#e04040;font-size:.8rem;margin-bottom:10px;display:none}
+
+/* ===== 通话界面 ===== */
+.call-screen{flex:1;display:none;position:relative;background:#000}
+
+/* 远端视频（全屏） */
+#remoteVideo{width:100%;height:100%;object-fit:contain;background:#0a0a0a}
+
+/* 本地视频（画中画，右下角） */
+#localVideo{position:absolute;bottom:100px;right:20px;width:200px;height:150px;object-fit:cover;border-radius:10px;border:2px solid rgba(74,158,255,.3);background:#1a1a2a;transform:scaleX(-1);z-index:10;display:none}
+@media(max-width:600px){#localVideo{width:140px;height:105px;bottom:90px;right:10px}}
+
+/* 无摄像头画面占位 */
+.video-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#3a4a5a;font-size:4rem}
+body.light .video-placeholder{color:#b0c0d0}
+
+/* 底部控制栏 */
+.controls{position:absolute;bottom:0;left:0;right:0;z-index:20;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:40px 24px 24px;display:flex;align-items:center;justify-content:center;gap:16px}
+.ctrl-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;font-size:1.3rem;transition:all .3s;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);color:#fff}
+.ctrl-btn:hover{background:rgba(255,255,255,.2)}
+.ctrl-btn.danger{background:#e04040}
+.ctrl-btn.danger:hover{background:#cc3030}
+.ctrl-btn.success{background:#4a9eff}
+.ctrl-btn.success:hover{background:#3a8aee}
+.ctrl-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* 拨号面板 */
+.dial-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;text-align:center;display:none}
+.dial-panel.show{display:block}
+.dial-panel h3{font-size:1rem;margin-bottom:6px;color:#fff}
+.dial-panel .sub{font-size:.8rem;color:#8a9bb5;margin-bottom:16px}
+.dial-input{width:260px;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:1rem;font-family:inherit;outline:none;text-align:center;margin-bottom:12px}
+.dial-input:focus{border-color:#4a9eff}
+.dial-input::placeholder{color:#5a7a9a}
+
+/* 状态栏 */
+.status-bar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:15;padding:6px 18px;border-radius:20px;font-size:.78rem;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);color:#b0c0d0;display:none;white-space:nowrap}
+.status-bar.show{display:block}
+.status-bar .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.green{background:#4caf50}
+.dot.yellow{background:#ffc107}
+.dot.red{background:#e04040}
+.dot.blue{background:#4a9eff}
+
+/* 空闲状态（未通话时显示拨号盘） */
+.idle-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;text-align:center;width:90%;max-width:360px}
+.idle-panel h3{font-size:1.3rem;color:#fff;margin-bottom:6px}
+.idle-panel .sub{font-size:.85rem;color:#8a9bb5;margin-bottom:20px}
+.idle-panel .sub strong{color:#4a9eff}
+.idle-input{width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:1rem;font-family:inherit;outline:none;text-align:center;margin-bottom:14px}
+.idle-input:focus{border-color:#4a9eff}
+.idle-input::placeholder{color:#5a7a9a}
+.call-btn{width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#4caf50,#66bb6a);color:#fff;font-size:1.5rem;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(76,175,80,.3)}
+.call-btn:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(76,175,80,.4)}
+.call-btn:disabled{opacity:.4;transform:none;box-shadow:none;cursor:not-allowed}
+
+/* 通用 */
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">个人博客</a>
+        <div class="nav-right">
+            <button class="theme-btn" id="themeBtn">☀️</button>
+            <a href="/" class="nav-home">← 首页</a>
+        </div>
+    </div>
+</nav>
+
+<div class="main-wrap">
+
+<!-- ===== 登录界面 ===== -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-card">
+        <h2>📞 网络通话</h2>
+        <p class="sub">输入昵称，开始通话</p>
+        <div class="login-error" id="loginError"></div>
+        <input type="text" id="loginName" placeholder="输入你的昵称..." maxlength="20" autocomplete="off" />
+        <button class="login-btn" id="loginBtn" onclick="doLogin()">登录</button>
+    </div>
+</div>
+
+<!-- ===== 通话界面 ===== -->
+<div class="call-screen" id="callScreen">
+    <!-- 远端视频 -->
+    <video id="remoteVideo" autoplay playsinline></video>
+    <!-- 本地视频 -->
+    <video id="localVideo" autoplay playsinline muted></video>
+    <!-- 无摄像头占位 -->
+    <div class="video-placeholder" id="videoPlaceholder">📹</div>
+    <!-- 状态条 -->
+    <div class="status-bar" id="statusBar"><span class="dot green"></span><span id="statusText">空闲</span></div>
+    <!-- 空闲拨号面板 -->
+    <div class="idle-panel" id="idlePanel">
+        <h3>呼叫对方</h3>
+        <p class="sub">当前在线：<span id="onlineHint">—</span></p>
+        <input class="idle-input" id="targetName" placeholder="输入对方昵称..." maxlength="20" autocomplete="off" />
+        <div>
+            <button class="call-btn" id="callBtn" onclick="startCall()">📞</button>
+        </div>
+    </div>
+    <!-- 通话中拨号面板 -->
+    <div class="dial-panel" id="dialPanel">
+        <h3 id="callStatusText">正在呼叫...</h3>
+        <p class="sub" id="callTargetText">对方: <strong id="callTargetName"></strong></p>
+        <div style="display:flex;justify-content:center;gap:12px">
+            <button class="ctrl-btn danger" id="hangupBtn" onclick="hangup()">✕</button>
+        </div>
+    </div>
+    <!-- 底部控制栏（备用挂断） -->
+    <div class="controls" id="controls">
+        <button class="ctrl-btn" id="micBtn" onclick="toggleMic()" title="麦克风">🎤</button>
+        <button class="ctrl-btn" id="camBtn" onclick="toggleCam()" title="摄像头">📷</button>
+        <button class="ctrl-btn danger hidden" id="hangupBtn2" onclick="hangup()" title="挂断">✕</button>
+    </div>
+</div>
+
+</div>
+
+<script>
+(function(){
+    // ===== 状态 =====
+    var WS_URL = 'wss://upload.sensing-origin.cn:8080/ws/';
+    var ws = null;
+    var localStream = null;
+    var pc = null;
+    var myName = '';
+    var targetName = '';
+    var inCall = false;
+    var isLoginScreen = true;
+    var callDirection = ''; // 'outgoing' or 'incoming'
+
+    // DOM 引用
+    var loginScreen = document.getElementById('loginScreen');
+    var callScreen = document.getElementById('callScreen');
+    var loginName = document.getElementById('loginName');
+    var loginBtn = document.getElementById('loginBtn');
+    var loginError = document.getElementById('loginError');
+    var localVideo = document.getElementById('localVideo');
+    var remoteVideo = document.getElementById('remoteVideo');
+    var videoPlaceholder = document.getElementById('videoPlaceholder');
+    var statusBar = document.getElementById('statusBar');
+    var statusText = document.getElementById('statusText');
+    var idlePanel = document.getElementById('idlePanel');
+    var targetNameInput = document.getElementById('targetName');
+    var callBtn = document.getElementById('callBtn');
+    var dialPanel = document.getElementById('dialPanel');
+    var callStatusText = document.getElementById('callStatusText');
+    var callTargetName = document.getElementById('callTargetName');
+    var hangupBtn = document.getElementById('hangupBtn');
+    var hangupBtn2 = document.getElementById('hangupBtn2');
+    var micBtn = document.getElementById('micBtn');
+    var camBtn = document.getElementById('camBtn');
+    var onlineHint = document.getElementById('onlineHint');
+
+    // ===== 主题 =====
+    var themeBtn = document.getElementById('themeBtn');
+    function applyTheme(t){
+        document.body.classList.toggle('light', t === 'light');
+        themeBtn.textContent = t === 'light' ? '☀️' : '🌙';
+    }
+    var saved = (function(){try{return localStorage.getItem('blog-theme')}catch(e){return null}})();
+    applyTheme(saved === 'dark' ? 'dark' : 'light');
+    themeBtn.onclick = function(){
+        var isLight = document.body.classList.contains('light');
+        applyTheme(isLight ? 'dark' : 'light');
+        try{localStorage.setItem('blog-theme', isLight ? 'dark' : 'light')}catch(e){}
+    };
+
+    // ===== 工具 =====
+    function showLoginError(msg){
+        loginError.textContent = msg;
+        loginError.style.display = 'block';
+    }
+    function hideLoginError(){ loginError.style.display = 'none'; }
+
+    function setStatus(state, msg){
+        statusBar.classList.add('show');
+        var dot = statusBar.querySelector('.dot');
+        dot.className = 'dot';
+        if(state === 'idle') { dot.classList.add('green'); statusText.textContent = msg || '空闲'; }
+        else if(state === 'calling') { dot.classList.add('yellow'); statusText.textContent = msg || '呼叫中...'; }
+        else if(state === 'ringing') { dot.classList.add('blue'); statusText.textContent = msg || '振铃'; }
+        else if(state === 'connected') { dot.classList.add('green'); statusText.textContent = msg || '通话中'; }
+        else if(state === 'error') { dot.classList.add('red'); statusText.textContent = msg || '错误'; }
+    }
+
+    function showScreen(login){
+        isLoginScreen = login;
+        loginScreen.style.display = login ? 'flex' : 'none';
+        callScreen.style.display = login ? 'none' : 'block';
+    }
+
+    function resetUI(){
+        inCall = false;
+        callDirection = '';
+        targetName = '';
+        dialPanel.classList.remove('show');
+        idlePanel.style.display = 'block';
+        hangupBtn2.classList.add('hidden');
+        micBtn.disabled = true;
+        camBtn.disabled = true;
+        setStatus('idle');
+    }
+
+    // ===== 媒体 =====
+    async function startMedia(){
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+            localVideo.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            micBtn.disabled = false;
+            camBtn.disabled = false;
+        } catch(e) {
+            console.warn('获取媒体设备失败:', e);
+            // 允许无视频模式
+            videoPlaceholder.style.display = 'flex';
+            localVideo.style.display = 'none';
+        }
+    }
+
+    function stopMedia(){
+        if(localStream){
+            localStream.getTracks().forEach(function(t){ t.stop(); });
+            localStream = null;
+        }
+        localVideo.srcObject = null;
+        localVideo.style.display = 'none';
+    }
+
+    function toggleMic(){
+        if(!localStream) return;
+        var audioTrack = localStream.getAudioTracks()[0];
+        if(audioTrack){
+            audioTrack.enabled = !audioTrack.enabled;
+            micBtn.style.opacity = audioTrack.enabled ? '1' : '.4';
+        }
+    }
+
+    function toggleCam(){
+        if(!localStream) return;
+        var videoTrack = localStream.getVideoTracks()[0];
+        if(videoTrack){
+            videoTrack.enabled = !videoTrack.enabled;
+            camBtn.style.opacity = videoTrack.enabled ? '1' : '.4';
+            localVideo.style.display = videoTrack.enabled ? 'block' : 'none';
+            videoPlaceholder.style.display = videoTrack.enabled ? 'none' : 'flex';
+        }
+    }
+
+    // ===== WebRTC =====
+    function createPeerConnection(){
+        if(pc) pc.close();
+        var config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        pc = new RTCPeerConnection(config);
+
+        pc.onicecandidate = function(e){
+            if(e.candidate && ws && ws.readyState === WebSocket.OPEN){
+                ws.send(JSON.stringify({
+                    type: 'candidate',
+                    from: myName,
+                    to: targetName,
+                    candidate: e.candidate.candidate,
+                    sdp_mid: e.candidate.sdpMid,
+                    mline_index: e.candidate.sdpMLineIndex
+                }));
+            }
+        };
+
+        pc.ontrack = function(e){
+            if(e.streams && e.streams[0]){
+                remoteVideo.srcObject = e.streams[0];
+            }
+        };
+
+        pc.oniceconnectionstatechange = function(){
+            if(pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed'){
+                setStatus('error', '连接断开');
+            }
+        };
+
+        // 添加本地轨道
+        if(localStream){
+            localStream.getTracks().forEach(function(track){
+                pc.addTrack(track, localStream);
+            });
+        }
+
+        return pc;
+    }
+
+    // ===== 信令 =====
+    function connectSignaling(name){
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = function(){
+            ws.send(JSON.stringify({ type: 'login', name: name }));
+        };
+
+        ws.onmessage = function(e){
+            try {
+                var msg = JSON.parse(e.data);
+                handleSignaling(msg);
+            } catch(err) {
+                console.warn('解析消息失败:', e.data);
+            }
+        };
+
+        ws.onclose = function(){
+            if(!isLoginScreen){
+                setStatus('error', '信令连接断开');
+                setTimeout(function(){
+                    if(!isLoginScreen) connectSignaling(myName);
+                }, 3000);
+            }
+        };
+
+        ws.onerror = function(){
+            showLoginError('无法连接信令服务器');
+            loginBtn.disabled = false;
+        };
+    }
+
+    function handleSignaling(msg){
+        switch(msg.type){
+            case 'login':
+                if(msg.ok){
+                    hideLoginError();
+                    showScreen(false);
+                    startMedia();
+                    setStatus('idle');
+                } else {
+                    showLoginError(msg.reason || '登录失败');
+                    loginBtn.disabled = false;
+                    if(ws) { ws.close(); ws = null; }
+                }
+                break;
+
+            case 'offer':
+                // 收到呼叫
+                targetName = msg.from;
+                callDirection = 'incoming';
+                callTargetName.textContent = targetName;
+                callStatusText.textContent = '来电';
+                dialPanel.classList.add('show');
+                idlePanel.style.display = 'none';
+                setStatus('ringing', '来自 ' + targetName + ' 的呼叫');
+
+                // 自动接听（简化处理，实际可以弹窗选择）
+                handleOffer(msg.sdp);
+                break;
+
+            case 'answer':
+                if(pc){
+                    pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+                    setStatus('connected');
+                }
+                break;
+
+            case 'candidate':
+                if(pc && msg.candidate){
+                    pc.addIceCandidate(new RTCIceCandidate({
+                        candidate: msg.candidate,
+                        sdpMid: msg.sdp_mid,
+                        sdpMLineIndex: msg.mline_index
+                    })).catch(function(e){});
+                }
+                break;
+
+            case 'leave':
+                // 对方挂断
+                if(inCall){
+                    setStatus('idle', '对方已挂断');
+                    endCall();
+                    setTimeout(function(){ resetUI(); }, 2000);
+                }
+                break;
+
+            case 'error':
+                setStatus('error', msg.reason || '信令错误');
+                break;
+        }
+    }
+
+    // ===== 通话控制 =====
+    window.doLogin = function(){
+        var name = loginName.value.trim();
+        if(!name){ showLoginError('请输入昵称'); return; }
+        hideLoginError();
+        loginBtn.disabled = true;
+        loginBtn.textContent = '连接中...';
+        myName = name;
+        connectSignaling(name);
+    };
+
+    window.startCall = function(){
+        var target = targetNameInput.value.trim();
+        if(!target){ alert('请输入对方昵称'); return; }
+        if(target === myName){ alert('不能呼叫自己'); return; }
+        if(!ws || ws.readyState !== WebSocket.OPEN){ alert('信令未连接'); return; }
+
+        targetName = target;
+        callDirection = 'outgoing';
+        callTargetName.textContent = targetName;
+        callStatusText.textContent = '正在呼叫...';
+        dialPanel.classList.add('show');
+        idlePanel.style.display = 'none';
+        hangupBtn2.classList.remove('hidden');
+        setStatus('calling', '正在呼叫 ' + targetName);
+
+        createPeerConnection();
+
+        // 创建 Offer
+        pc.createOffer().then(function(offer){
+            return pc.setLocalDescription(offer);
+        }).then(function(){
+            ws.send(JSON.stringify({
+                type: 'offer',
+                from: myName,
+                to: targetName,
+                sdp: pc.localDescription.sdp
+            }));
+        }).catch(function(err){
+            console.error('创建 Offer 失败:', err);
+            setStatus('error', '创建连接失败');
+        });
+
+        inCall = true;
+    };
+
+    function handleOffer(sdp){
+        createPeerConnection();
+
+        pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sdp })).then(function(){
+            return pc.createAnswer();
+        }).then(function(answer){
+            return pc.setLocalDescription(answer);
+        }).then(function(){
+            ws.send(JSON.stringify({
+                type: 'answer',
+                from: myName,
+                to: targetName,
+                sdp: pc.localDescription.sdp
+            }));
+            setStatus('connected', '与 ' + targetName + ' 通话中');
+            hangupBtn2.classList.remove('hidden');
+        }).catch(function(err){
+            console.error('创建 Answer 失败:', err);
+        });
+
+        inCall = true;
+    }
+
+    window.hangup = function(){
+        if(ws && ws.readyState === WebSocket.OPEN && targetName){
+            ws.send(JSON.stringify({ type: 'leave', from: myName, to: targetName }));
+        }
+        endCall();
+        resetUI();
+    };
+
+    function endCall(){
+        if(pc) { pc.close(); pc = null; }
+        remoteVideo.srcObject = null;
+        inCall = false;
+        callDirection = '';
+    }
+
+    // ===== 键盘快捷键 =====
+    loginName.addEventListener('keydown', function(e){
+        if(e.key === 'Enter') window.doLogin();
+    });
+    targetNameInput.addEventListener('keydown', function(e){
+        if(e.key === 'Enter') window.startCall();
+    });
+
+})();
+</script>
+</body>
+</html>
