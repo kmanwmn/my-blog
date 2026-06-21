@@ -150,6 +150,7 @@ body.light .video-placeholder{color:#b0c0d0}
         <h3 id="callStatusText">正在呼叫...</h3>
         <p class="sub" id="callTargetText">对方: <strong id="callTargetName"></strong></p>
         <div style="display:flex;justify-content:center;gap:12px">
+            <button class="ctrl-btn success hidden" id="answerBtn" onclick="answerCall()" title="接听">📞</button>
             <button class="ctrl-btn danger" id="hangupBtn" onclick="hangup()">✕</button>
         </div>
     </div>
@@ -175,6 +176,7 @@ body.light .video-placeholder{color:#b0c0d0}
     var inCall = false;
     var isLoginScreen = true;
     var callDirection = ''; // 'outgoing' or 'incoming'
+    var pendingOfferSdp = null; // 暂存收到的 offer SDP
 
     // DOM 引用
     var loginScreen = document.getElementById('loginScreen');
@@ -195,6 +197,7 @@ body.light .video-placeholder{color:#b0c0d0}
     var callTargetName = document.getElementById('callTargetName');
     var hangupBtn = document.getElementById('hangupBtn');
     var hangupBtn2 = document.getElementById('hangupBtn2');
+    var answerBtn = document.getElementById('answerBtn');
     var micBtn = document.getElementById('micBtn');
     var camBtn = document.getElementById('camBtn');
     var onlineHint = document.getElementById('onlineHint');
@@ -241,9 +244,11 @@ body.light .video-placeholder{color:#b0c0d0}
         inCall = false;
         callDirection = '';
         targetName = '';
+        pendingOfferSdp = null;
         dialPanel.classList.remove('show');
         idlePanel.style.display = 'block';
         hangupBtn2.classList.add('hidden');
+        answerBtn.classList.add('hidden');
         micBtn.disabled = true;
         camBtn.disabled = true;
         setStatus('idle');
@@ -387,14 +392,31 @@ body.light .video-placeholder{color:#b0c0d0}
                 // 收到呼叫
                 targetName = msg.from;
                 callDirection = 'incoming';
+                pendingOfferSdp = msg.sdp;
                 callTargetName.textContent = targetName;
-                callStatusText.textContent = '来电';
+                callStatusText.textContent = '📞 来电';
                 dialPanel.classList.add('show');
                 idlePanel.style.display = 'none';
+                answerBtn.classList.remove('hidden');
                 setStatus('ringing', '来自 ' + targetName + ' 的呼叫');
 
-                // 自动接听（简化处理，实际可以弹窗选择）
-                handleOffer(msg.sdp);
+                // 通知主叫方正在振铃
+                if(ws && ws.readyState === WebSocket.OPEN){
+                    ws.send(JSON.stringify({ type: 'ringing', from: myName, to: targetName }));
+                }
+                break;
+
+            case 'ringing':
+                // 主叫方收到振铃通知
+                callStatusText.textContent = '🔔 振铃中';
+                setStatus('ringing', targetName + ' 振铃中...');
+                break;
+
+            case 'reject':
+                // 对方拒绝
+                setStatus('idle', targetName + ' 已拒绝');
+                endCall();
+                setTimeout(function(){ resetUI(); }, 2000);
                 break;
 
             case 'answer':
@@ -498,9 +520,31 @@ body.light .video-placeholder{color:#b0c0d0}
         inCall = true;
     }
 
+    window.answerCall = function(){
+        if(!pendingOfferSdp) return;
+        answerBtn.classList.add('hidden');
+        callStatusText.textContent = '连接中...';
+        setStatus('connected', '与 ' + targetName + ' 通话中');
+        hangupBtn2.classList.remove('hidden');
+        handleOffer(pendingOfferSdp);
+        pendingOfferSdp = null;
+
+        // 通知主叫方已接听
+        if(ws && ws.readyState === WebSocket.OPEN){
+            ws.send(JSON.stringify({ type: 'accept', from: myName, to: targetName }));
+        }
+    };
+
     window.hangup = function(){
-        if(ws && ws.readyState === WebSocket.OPEN && targetName){
-            ws.send(JSON.stringify({ type: 'leave', from: myName, to: targetName }));
+        // 未接听的来电 → 发 reject
+        if(callDirection === 'incoming' && !inCall){
+            if(ws && ws.readyState === WebSocket.OPEN && targetName){
+                ws.send(JSON.stringify({ type: 'reject', from: myName, to: targetName }));
+            }
+        } else {
+            if(ws && ws.readyState === WebSocket.OPEN && targetName){
+                ws.send(JSON.stringify({ type: 'leave', from: myName, to: targetName }));
+            }
         }
         endCall();
         resetUI();
