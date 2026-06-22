@@ -585,6 +585,34 @@ body.light .col-item.active .col-count{color:#4a9eff}
         input.value = ''; // 允许重复上传同一文件
     };
 
+    // ===== 编辑器附件上传 =====
+    window.selectBlogFile = function(){
+        document.getElementById('blogFileInput').click();
+    };
+
+    window.uploadBlogFile = function(input){
+        var file = input && input.files && input.files[0];
+        if(!file) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', API + '/upload/blog-file', true);
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+        xhr.setRequestHeader('Authorization', 'Bearer ' + adminToken);
+        xhr.onload = function(){
+            if(xhr.status === 201){
+                try{
+                    var r = JSON.parse(xhr.responseText);
+                    if(r.url && currentEditor){
+                        var fname = r.filename || file.name;
+                        currentEditor.insertValue('\n[' + fname + '](' + r.url + ')\n');
+                    }
+                }catch(e){ alert('文件上传成功但解析失败'); }
+            } else { alert('文件上传失败 (状态码 ' + xhr.status + ')'); }
+        };
+        xhr.onerror = function(){ alert('文件上传失败：网络错误'); };
+        xhr.send(file);
+        input.value = '';
+    };
+
     // ===== 新增文章 =====
     window.adminAdd = function(){
         destroyEditor();
@@ -610,10 +638,12 @@ body.light .col-item.active .col-count{color:#4a9eff}
             '</div>' +
             '<label>所属专栏</label><select id="f_column_id"><option value="0">无</option></select>' +
             '<label>内容（Markdown）</label>' +
-            '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">' +
-            '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 上传图片</button>' +
+            '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap">' +
+            '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 图片</button>' +
+            '<button class="admin-btn secondary small" onclick="selectBlogFile()">📎 附件</button>' +
             '<span style="font-size:.72rem;color:#5a7a9a">或 Ctrl+V 粘贴 / 拖拽图片</span>' +
             '<input type="file" id="blogImageInput" accept="image/*" style="display:none" onchange="uploadBlogImage(this)" />' +
+            '<input type="file" id="blogFileInput" style="display:none" onchange="uploadBlogFile(this)" />' +
             '</div>' +
             '<div id="vditor"></div>' +
             '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
@@ -682,8 +712,9 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 '</div>' +
                 '<label>所属专栏</label><select id="f_column_id"><option value="0">无</option></select>' +
                 '<label>内容（Markdown）</label>' +
-                '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">' +
-                '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 上传图片</button>' +
+                '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap">' +
+                '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 图片</button>' +
+                '<button class="admin-btn secondary small" onclick="selectBlogFile()">📎 附件</button>' +
                 '<span style="font-size:.72rem;color:#5a7a9a">或 Ctrl+V 粘贴 / 拖拽图片</span>' +
                 '</div>' +
                 '<div id="vditor"></div>' +
