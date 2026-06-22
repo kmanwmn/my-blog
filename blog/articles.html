@@ -715,7 +715,10 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap">' +
                 '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 图片</button>' +
                 '<button class="admin-btn secondary small" onclick="selectBlogFile()">📎 附件</button>' +
+                '<button class="admin-btn secondary small" onclick="selectBlogImage()">🖼️ 图片</button>' +
                 '<span style="font-size:.72rem;color:#5a7a9a">或 Ctrl+V 粘贴 / 拖拽图片</span>' +
+                '<input type="file" id="blogImageInput" accept="image/*" style="display:none" onchange="uploadBlogImage(this)" />' +
+                '<input type="file" id="blogFileInput" style="display:none" onchange="uploadBlogFile(this)" />' +
                 '</div>' +
                 '<div id="vditor"></div>' +
                 '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
