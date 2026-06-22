@@ -578,6 +578,9 @@ body.light .col-item.active .col-count{color:#4a9eff}
                         currentEditor.insertValue('\n![](' + r.url + ')\n');
                     }
                 }catch(e){ alert('图片上传成功但解析失败'); }
+            } else if(xhr.status === 401){
+                alert('登录已过期，请重新登录');
+                window.adminLogout();
             } else { alert('图片上传失败 (状态码 ' + xhr.status + ')'); }
         };
         xhr.onerror = function(){ alert('图片上传失败：网络错误'); };
@@ -606,6 +609,9 @@ body.light .col-item.active .col-count{color:#4a9eff}
                         currentEditor.insertValue('\n[' + fname + '](' + r.url + ')\n');
                     }
                 }catch(e){ alert('文件上传成功但解析失败'); }
+            } else if(xhr.status === 401){
+                alert('登录已过期，请重新登录');
+                window.adminLogout();
             } else { alert('文件上传失败 (状态码 ' + xhr.status + ')'); }
         };
         xhr.onerror = function(){ alert('文件上传失败：网络错误'); };
