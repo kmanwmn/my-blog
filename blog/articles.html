@@ -217,7 +217,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
     var loadingEl = document.getElementById('loadingState');
     var gridEl = document.getElementById('gridContainer');
 
-    function loadArticles(search){
+    function loadArticles(search, retry){
         var url = API + '/blog-articles?page=1&page_size=50';
         if(search) url += '&search=' + encodeURIComponent(search);
         if(activeColumnId > 0) url += '&column_id=' + activeColumnId;
@@ -236,8 +236,20 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 }catch(e){ showError('数据解析失败'); }
             } else { showError('加载失败'); }
         };
-        xhr.onerror = function(){ loadingEl.style.display = 'none'; showError('网络错误'); };
-        xhr.ontimeout = function(){ loadingEl.style.display = 'none'; showError('加载超时'); };
+        xhr.onerror = function(){
+            if(retry < 2){
+                setTimeout(function(){ loadArticles(search, (retry||0)+1); }, 1000);
+            } else {
+                loadingEl.style.display = 'none'; showError('网络错误，请刷新重试');
+            }
+        };
+        xhr.ontimeout = function(){
+            if(retry < 2){
+                setTimeout(function(){ loadArticles(search, (retry||0)+1); }, 1000);
+            } else {
+                loadingEl.style.display = 'none'; showError('加载超时，请刷新重试');
+            }
+        };
         xhr.send();
     }
 
