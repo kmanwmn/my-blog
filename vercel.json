@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/:match*", "destination": "http://124.223.88.48:5000/api/:match*" },
-    { "source": "/vod/:match*", "destination": "http://124.223.88.48:5000/vod/:match*" }
+    { "source": "/vod/:match*", "destination": "http://124.223.88.48:5000/vod/:match*" },
+    { "source": "/lib/:match*", "destination": "http://124.223.88.48/lib/:match*" }
   ]
 }

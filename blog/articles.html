@@ -441,6 +441,18 @@ body.light .col-item.active .col-count{color:#4a9eff}
         xhr.send(body ? JSON.stringify(body) : null);
     }
 
+    function loadVditor(cb){
+        if(typeof Vditor !== 'undefined'){ cb(); return; }
+        var link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = '/lib/vditor/index.min.css';
+        document.head.appendChild(link);
+        var script = document.createElement('script');
+        script.src = '/lib/vditor/index.min.js';
+        script.onload = cb;
+        script.onerror = function(){ alert('编辑器加载失败，请刷新后重试'); };
+        document.body.appendChild(script);
+    }
+
     // ===== Vditor 编辑器 =====
     var currentEditor = null;
 
@@ -452,11 +464,11 @@ body.light .col-item.active .col-count{color:#4a9eff}
     }
 
     function initVditor(content, cb){
-        // 需要确保 #vditor 元素存在
-        var el = document.getElementById('vditor');
-        if(!el) return;
-        destroyEditor();
-        currentEditor = new Vditor('vditor', {
+        loadVditor(function(){
+            var el = document.getElementById('vditor');
+            if(!el) return;
+            destroyEditor();
+            currentEditor = new Vditor('vditor', {
             height: 420,
             mode: 'sv',
             placeholder: '使用 Markdown 编写文章内容...',
@@ -504,6 +516,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 if(content) currentEditor.setValue(content);
                 if(cb) cb();
             }
+        });
         });
     }
 
@@ -963,9 +976,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
 })();
 </script>
 
-<!-- Vditor CDN -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.js"></script>
+<!-- Vditor 通过 loadVditor() 按需加载 -->
 
 </body>
 </html>
