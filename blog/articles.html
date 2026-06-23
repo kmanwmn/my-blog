@@ -217,7 +217,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
     var loadingEl = document.getElementById('loadingState');
     var gridEl = document.getElementById('gridContainer');
 
-    function loadArticles(search, retry){
+    function loadArticles(search){
         var url = API + '/blog-articles?page=1&page_size=50';
         if(search) url += '&search=' + encodeURIComponent(search);
         if(activeColumnId > 0) url += '&column_id=' + activeColumnId;
@@ -236,20 +236,8 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 }catch(e){ showError('数据解析失败'); }
             } else { showError('加载失败'); }
         };
-        xhr.onerror = function(){
-            if(retry < 2){
-                setTimeout(function(){ loadArticles(search, (retry||0)+1); }, 1000);
-            } else {
-                loadingEl.style.display = 'none'; showError('网络错误，请刷新重试');
-            }
-        };
-        xhr.ontimeout = function(){
-            if(retry < 2){
-                setTimeout(function(){ loadArticles(search, (retry||0)+1); }, 1000);
-            } else {
-                loadingEl.style.display = 'none'; showError('加载超时，请刷新重试');
-            }
-        };
+        xhr.onerror = function(){ loadingEl.style.display = 'none'; showError('网络错误'); };
+        xhr.ontimeout = function(){ loadingEl.style.display = 'none'; showError('加载超时'); };
         xhr.send();
     }
 
@@ -453,17 +441,7 @@ body.light .col-item.active .col-count{color:#4a9eff}
         xhr.send(body ? JSON.stringify(body) : null);
     }
 
-    function loadVditor(cb){
-        if(typeof Vditor !== 'undefined'){ cb(); return; }
-        var link = document.createElement('link');
-        link.rel = 'stylesheet'; link.href = '/lib/vditor/index.min.css';
-        document.head.appendChild(link);
-        var script = document.createElement('script');
-        script.src = '/lib/vditor/index.min.js';
-        script.onload = cb; script.onerror = function(){ alert('编辑器加载失败'); };
-        document.body.appendChild(script);
-    }
-
+    // ===== Vditor 编辑器 =====
     var currentEditor = null;
 
     function destroyEditor(){
@@ -474,11 +452,11 @@ body.light .col-item.active .col-count{color:#4a9eff}
     }
 
     function initVditor(content, cb){
-        loadVditor(function(){
-            var el = document.getElementById('vditor');
-            if(!el) return;
-            destroyEditor();
-            currentEditor = new Vditor('vditor', {
+        // 需要确保 #vditor 元素存在
+        var el = document.getElementById('vditor');
+        if(!el) return;
+        destroyEditor();
+        currentEditor = new Vditor('vditor', {
             height: 420,
             mode: 'sv',
             placeholder: '使用 Markdown 编写文章内容...',
@@ -527,7 +505,6 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 if(cb) cb();
             }
         });
-        }
     }
 
     function handleImageUpload(files){
@@ -674,10 +651,12 @@ body.light .col-item.active .col-count{color:#4a9eff}
             '<input type="file" id="blogImageInput" accept="image/*" style="display:none" onchange="uploadBlogImage(this)" />' +
             '<input type="file" id="blogFileInput" style="display:none" onchange="uploadBlogFile(this)" />' +
             '</div>' +
+            '<div id="vditor"></div>' +
             '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
             '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
             '<button class="admin-btn primary" onclick="adminSave()">发布文章</button></div></div>';
         overlay.classList.add('show');
+        initVditor('');
         editColumnId = 0;
         loadColumnSelect();
     };
@@ -747,11 +726,14 @@ body.light .col-item.active .col-count{color:#4a9eff}
                 '<input type="file" id="blogImageInput" accept="image/*" style="display:none" onchange="uploadBlogImage(this)" />' +
                 '<input type="file" id="blogFileInput" style="display:none" onchange="uploadBlogFile(this)" />' +
                 '</div>' +
+                '<div id="vditor"></div>' +
                 '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
                 '<button class="admin-btn secondary" onclick="closeAdmin()">取消</button>' +
                 '<button class="admin-btn primary" onclick="adminUpdate(' + id + ')">保存</button></div></div>';
             editColumnId = item.column_id || 0;
             loadColumnSelect();
+            initVditor(item.content || '', function(){
+                // Vditor 加载完成后已有内容
             });
         });
     };
@@ -981,6 +963,9 @@ body.light .col-item.active .col-count{color:#4a9eff}
 })();
 </script>
 
+<!-- Vditor CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.js"></script>
 
 </body>
 </html>
