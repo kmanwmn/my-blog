@@ -168,7 +168,15 @@ const API = '/api/ai/chat';
 let isProcessing = false;
 let msgHistory = [];
 
-function toggleTheme() { document.body.classList.toggle('light'); }
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  try { localStorage.setItem('chat-theme', isLight ? 'light' : 'dark'); } catch(e) {}
+}
+(function(){
+  var saved = (function(){try{return localStorage.getItem('chat-theme')}catch(e){return null}})();
+  if (saved === 'dark') document.body.classList.remove('light');
+  else document.body.classList.add('light'); // 默认白天
+})();
 
 function toast(msg) {
   const t = document.getElementById('toast');
