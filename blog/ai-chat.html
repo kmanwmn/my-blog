@@ -178,6 +178,14 @@ function toggleTheme() {
   else document.body.classList.add('light'); // 默认白天
 })();
 
+// 自动滚动：只在用户未上翻时滚动到底部
+function scrollToBottom(el) {
+  // 如果距底部不足 40px 则认为用户在底部，自动滚动
+  if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -191,7 +199,7 @@ function addMessage(role, html) {
   div.className = `msg msg-${role}`;
   div.innerHTML = `<div class="bubble">${html}</div>`;
   el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+  scrollToBottom(el);
   return div;
 }
 
@@ -213,7 +221,7 @@ function addToolIndicator(name, status) {
     div.innerHTML = `<span class="spinner"></span> ${label}...`;
   }
   el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+  scrollToBottom(el);
   return div;
 }
 
@@ -224,7 +232,7 @@ function addThinking() {
   div.id = 'thinking-indicator';
   div.innerHTML = '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> AI 思考中...';
   el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+  scrollToBottom(el);
 }
 
 function removeThinking() {
@@ -336,7 +344,7 @@ async function sendMessage() {
               const bubble = assistantMsg.querySelector('.bubble');
               bubble.innerHTML = renderMarkdown(fullContent);
             }
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            scrollToBottom(document.getElementById('messages'));
           }
 
           if (event.type === 'tool_start') {
