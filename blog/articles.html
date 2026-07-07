@@ -971,6 +971,12 @@ body.light .col-item.active .col-count{color:#4a9eff}
     });
 
     // ===== 加载 =====
+    // 支持 ?column=N URL 参数自动选中专栏
+    var urlParams = new URLSearchParams(window.location.search);
+    var colParam = urlParams.get('column');
+    if(colParam && !isNaN(colParam) && parseInt(colParam) > 0){
+        activeColumnId = parseInt(colParam);
+    }
     loadArticles('');
     loadColumns();
 })();
