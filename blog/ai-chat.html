@@ -256,8 +256,8 @@ function renderMarkdown(text) {
     // Code blocks
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Tables
-    .replace(/\n\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)*)/g, (m, header, body) => {
+    // Tables (支持 : 对齐标记)
+    .replace(/\n\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/g, (m, header, body) => {
       const hcells = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
       const rows = body.trim().split('\n').filter(r => r.trim()).map(r => {
         return '<tr>' + r.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('') + '</tr>';
