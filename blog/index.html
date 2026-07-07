@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人博客</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{min-height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Microsoft YaHei',sans-serif;background:#f5f7fa;color:#1a2a3a;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;transition:background .4s,color .4s}
+body.dark{background:#03050a;color:#e0e4ee}
+.container{max-width:600px;width:100%;text-align:center}
+.avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#4a9eff,#80c8ff);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:8px}
+.sub{font-size:1rem;color:#5a6a7a;margin-bottom:32px;line-height:1.6}
+body.dark .sub{color:#8a9bb5}
+.links{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+.links a{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:12px;text-decoration:none;font-size:1rem;font-weight:500;transition:all .3s;background:#ffffff;color:#1a2a3a;border:1px solid rgba(0,0,0,.06)}
+.links a:hover{background:#eef1f5;border-color:#4a9eff;transform:translateY(-2px)}
+body.dark .links a{background:rgba(255,255,255,.04);color:#e0e4ee;border-color:rgba(255,255,255,.08)}
+body.dark .links a:hover{background:rgba(74,158,255,.1);border-color:#4a9eff}
+.footer{font-size:.8rem;color:#8a9aa8;margin-top:16px}
+.theme-btn{position:fixed;top:20px;right:20px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(0,0,0,.1);background:#fff;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;color:#1a2a3a}
+body.dark .theme-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#e0e4ee}
+
+/* 弹窗遮罩 */
+.notice-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn .3s ease}
+.notice-overlay.show{display:flex}
+.notice-modal{background:#ffffff;border-radius:16px;padding:36px 32px 28px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;animation:slideUp .35s ease}
+body.dark .notice-modal{background:#0e121f;border:1px solid rgba(74,158,255,.15)}
+.notice-icon{text-align:center;font-size:2.5rem;margin-bottom:12px}
+.notice-title{text-align:center;font-size:1.05rem;font-weight:700;margin-bottom:16px;color:#1a2a3a}
+body.dark .notice-title{color:#e0e4ee}
+.notice-body{font-size:.85rem;line-height:1.8;color:#3a4a5a;margin-bottom:20px}
+body.dark .notice-body{color:#b0c0d0}
+.notice-body strong{color:#4a9eff}
+.notice-body .hl{color:#e04040;font-weight:600}
+.notice-body a{color:#4a9eff;text-decoration:none}
+.notice-body a:hover{text-decoration:underline}
+.notice-btn{display:block;width:100%;padding:12px;border-radius:10px;border:none;background:#4a9eff;color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .3s;font-family:inherit}
+.notice-btn:hover{background:#3a8aee}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- 通知弹窗 -->
+<div class="notice-overlay" id="noticeOverlay">
+    <div class="notice-modal">
+        <div class="notice-icon">📢</div>
+        <div class="notice-title">内容声明</div>
+        <div class="notice-body">
+            <p>本站技术交流板块的视频内容均来源于网络收集与整理，仅供技术学习、研究交流之用，<span class="hl">严禁用于任何商业用途</span>。</p>
+            <br>
+            <p>如果您是视频版权方，认为本站内容侵犯了您的合法权益，请通过以下方式联系我们，我们将在核实后<strong>第一时间删除</strong>相关视频：</p>
+            <br>
+            <p style="text-align:center;font-size:1.05rem">
+                📧 <strong><a href="mailto:3395175831@qq.com">3395175831@qq.com</a></strong>
+            </p>
+            <br>
+            <p style="font-size:.8rem;color:#8a9aa8">
+                联系时请提供：侵权视频标题及版权证明材料，我们承诺在 48 小时内处理。
+            </p>
+        </div>
+        <button class="notice-btn" onclick="closeNotice()">我知道了</button>
+    </div>
+</div>
+
+<button class="theme-btn" id="themeBtn">☀️</button>
+<div class="container">
+    <div class="avatar">👤</div>
+    <h1>个人博客</h1>
+    <p class="sub">记录技术成长，分享有趣内容</p>
+    <div class="links">
+        <a href="/blog/articles.html">📝 文章</a>
+        <a href="/blog/tech.html">📺 技术交流</a>
+        <a href="/blog/call.html">📞 网络通话</a>
+        <a href="/blog/ai-chat.html">💬 AI 聊天</a>
+    </div>
+    <div class="footer">© 2026 <span style="opacity:.4;margin-left:8px;font-size:.7rem">v1.0.0 · ae01dd4</span></div>
+</div>
+<script>
+(function(){
+    // 主题切换
+    var theme = 'light';
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+        theme = t;
+        document.body.classList.toggle('dark', t === 'dark');
+        btn.textContent = t === 'dark' ? '🌙' : '☀️';
+        try{localStorage.setItem('blog-theme',t)}catch(e){}
+    }
+    btn.onclick = function(){ apply(theme === 'light' ? 'dark' : 'light'); };
+    var saved = (function(){try{return localStorage.getItem('blog-theme')}catch(e){return null}})();
+    if(saved === 'dark') apply('dark');
+
+    // 通知弹窗（每次打开都显示）
+    var overlay = document.getElementById('noticeOverlay');
+    setTimeout(function(){ overlay.classList.add('show'); }, 300);
+})();
+
+function closeNotice(){
+    document.getElementById('noticeOverlay').classList.remove('show');
+}
+</script>
+</body>
+</html>
