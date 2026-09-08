@@ -272,39 +272,66 @@ body.light .video-placeholder{color:#b0c0d0}
 
     // ===== 媒体（本地预览，加约束防高分辨率卡顿） =====
     async function startMedia(){
-        var ok = false;
+        // 摄像头要求安全上下文：非 https/localhost 下浏览器会直接禁用
+        if(!window.isSecureContext){
+            console.warn('非安全上下文，摄像头被浏览器禁用');
+            videoPlaceholder.style.display = 'flex';
+            videoPlaceholder.innerHTML = '🚫<div style="font-size:1rem;color:#f87171;margin-top:10px">浏览器禁止摄像头：请用 <b>https://</b> 地址打开本页（当前是 http 非安全页）</div>';
+            localVideo.style.display = 'none';
+            setStatus('error', '当前为 http 非安全页，浏览器禁止摄像头，请改用 https 地址');
+            return;
+        }
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+            console.warn('当前浏览器不支持 getUserMedia');
+            videoPlaceholder.style.display = 'flex';
+            localVideo.style.display = 'none';
+            return;
+        }
+        var lastErr = null;
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
                 video: { width:{ ideal:1280 }, height:{ ideal:720 }, frameRate:{ ideal:30 } },
                 audio: { echoCancellation:true, noiseSuppression:true }
             });
-            ok = true;
         } catch(e1) {
+            lastErr = e1;
             try {
                 // 降级：摄像头不支持指定分辨率时退回系统默认
                 localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
-                ok = true;
             } catch(e2) {
+                lastErr = e2;
                 try {
                     localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
-                    ok = true;
                 } catch(e3) {
+                    lastErr = e3;
                     console.warn('获取媒体设备失败:', e1, e2, e3);
                 }
             }
         }
-        if(ok && localStream){
+        if(localStream){
             localVideo.srcObject = localStream;
             localVideo.style.display = 'block';
             videoPlaceholder.style.display = 'none';
             micBtn.disabled = false;
             camBtn.disabled = false;
         } else {
-            // 无视频/无音频模式：仍允许信令文本通话
+            // 无视频/无音频：给出明确原因，避免“黑屏不知为何”
             videoPlaceholder.style.display = 'flex';
             localVideo.style.display = 'none';
             micBtn.disabled = true;
             camBtn.disabled = true;
+            var reason = '无法开启摄像头/麦克风';
+            var code = (lastErr && lastErr.name) || '';
+            if(code === 'NotAllowedError' || code === 'PermissionDeniedError'){
+                reason = '摄像头/麦克风权限被拒绝：请点地址栏的摄像头图标允许';
+            } else if(code === 'NotFoundError' || code === 'DevicesNotFoundError'){
+                reason = '未检测到摄像头/麦克风设备';
+            } else if(code === 'NotReadableError' || code === 'TrackStartError'){
+                reason = '摄像头被其他程序占用，请关闭占用程序后刷新';
+            }
+            console.warn('媒体不可用:', code, lastErr);
+            videoPlaceholder.innerHTML = '📹<div style="font-size:.9rem;color:#6a8ab5;margin-top:10px">' + reason + '</div>';
+            setStatus('error', reason);
         }
     }
 
