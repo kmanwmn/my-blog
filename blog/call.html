@@ -171,67 +171,57 @@ body.light .video-placeholder{color:#b0c0d0}
     var ws = null;
     var localStream = null;
     var pc = null;
+    var pendingCandidates = [];   // 远程描述未就绪前缓存的 ICE candidate
     var myName = '';
     var targetName = '';
     var inCall = false;
+    var awaitingAnswer = false;   // 主叫：等待对方 answer
+    var incomingPending = false;  // 被叫：已收到 offer 等待用户接听/拒接
     var isLoginScreen = true;
-    var callDirection = ''; // 'outgoing' or 'incoming'
-    var pendingOfferSdp = null; // 暂存收到的 offer SDP
+    var callDirection = '';       // 'outgoing' | 'incoming'
+    var errorTimer = null;
 
-    // DOM 引用
-    var loginScreen = document.getElementById('loginScreen');
-    var callScreen = document.getElementById('callScreen');
-    var loginName = document.getElementById('loginName');
-    var loginBtn = document.getElementById('loginBtn');
-    var loginError = document.getElementById('loginError');
-    var localVideo = document.getElementById('localVideo');
-    var remoteVideo = document.getElementById('remoteVideo');
-    var videoPlaceholder = document.getElementById('videoPlaceholder');
-    var statusBar = document.getElementById('statusBar');
-    var statusText = document.getElementById('statusText');
-    var idlePanel = document.getElementById('idlePanel');
-    var targetNameInput = document.getElementById('targetName');
-    var callBtn = document.getElementById('callBtn');
-    var dialPanel = document.getElementById('dialPanel');
-    var callStatusText = document.getElementById('callStatusText');
-    var callTargetName = document.getElementById('callTargetName');
-    var hangupBtn = document.getElementById('hangupBtn');
-    var hangupBtn2 = document.getElementById('hangupBtn2');
-    var answerBtn = document.getElementById('answerBtn');
-    var micBtn = document.getElementById('micBtn');
-    var camBtn = document.getElementById('camBtn');
-    var onlineHint = document.getElementById('onlineHint');
+    // ===== DOM =====
+    function $(id){ return document.getElementById(id); }
+    var loginScreen = $('loginScreen'), callScreen = $('callScreen');
+    var loginName = $('loginName'), loginBtn = $('loginBtn'), loginError = $('loginError');
+    var localVideo = $('localVideo'), remoteVideo = $('remoteVideo'), videoPlaceholder = $('videoPlaceholder');
+    var statusBar = $('statusBar'), statusText = $('statusText');
+    var idlePanel = $('idlePanel'), targetNameInput = $('targetName'), callBtn = $('callBtn');
+    var dialPanel = $('dialPanel'), callStatusText = $('callStatusText'), callTargetName = $('callTargetName');
+    var hangupBtn = $('hangupBtn'), hangupBtn2 = $('hangupBtn2'), answerBtn = $('answerBtn');
+    var micBtn = $('micBtn'), camBtn = $('camBtn'), onlineHint = $('onlineHint');
 
     // ===== 主题 =====
-    var themeBtn = document.getElementById('themeBtn');
+    var themeBtn = $('themeBtn');
     function applyTheme(t){
         document.body.classList.toggle('light', t === 'light');
         themeBtn.textContent = t === 'light' ? '☀️' : '🌙';
     }
-    var saved = (function(){try{return localStorage.getItem('blog-theme')}catch(e){return null}})();
+    var saved = (function(){ try{ return localStorage.getItem('blog-theme'); }catch(e){ return null; } })();
     applyTheme(saved === 'dark' ? 'dark' : 'light');
     themeBtn.onclick = function(){
         var isLight = document.body.classList.contains('light');
         applyTheme(isLight ? 'dark' : 'light');
-        try{localStorage.setItem('blog-theme', isLight ? 'dark' : 'light')}catch(e){}
+        try{ localStorage.setItem('blog-theme', isLight ? 'dark' : 'light'); }catch(e){}
     };
 
     // ===== 工具 =====
-    function showLoginError(msg){
-        loginError.textContent = msg;
-        loginError.style.display = 'block';
-    }
+    function showLoginError(msg){ loginError.textContent = msg; loginError.style.display = 'block'; }
     function hideLoginError(){ loginError.style.display = 'none'; }
 
     function setStatus(state, msg){
         statusBar.classList.add('show');
         var dot = statusBar.querySelector('.dot');
         dot.className = 'dot';
-        if(state === 'idle') { dot.classList.add('green'); statusText.textContent = msg || '空闲'; }
-        else if(state === 'calling') { dot.classList.add('yellow'); statusText.textContent = msg || '呼叫中...'; }
-        else if(state === 'ringing') { dot.classList.add('blue'); statusText.textContent = msg || '振铃'; }
-        else if(state === 'connected') { dot.classList.add('green'); statusText.textContent = msg || '通话中'; }
-        else if(state === 'error') { dot.classList.add('red'); statusText.textContent = msg || '错误'; }
+        var map = { idle:'green', calling:'yellow', ringing:'blue', connected:'green', error:'red' };
+        dot.classList.add(map[state] || 'green');
+        statusText.textContent = msg || '';
+    }
+    function showError(msg){
+        setStatus('error', msg);
+        if(errorTimer) clearTimeout(errorTimer);
+        errorTimer = setTimeout(function(){ setStatus('idle'); }, 8000);
     }
 
     function showScreen(login){
@@ -242,9 +232,10 @@ body.light .video-placeholder{color:#b0c0d0}
 
     function resetUI(){
         inCall = false;
+        incomingPending = false;
+        awaitingAnswer = false;
         callDirection = '';
         targetName = '';
-        pendingOfferSdp = null;
         dialPanel.classList.remove('show');
         idlePanel.style.display = 'block';
         hangupBtn2.classList.add('hidden');
@@ -254,20 +245,66 @@ body.light .video-placeholder{color:#b0c0d0}
         setStatus('idle');
     }
 
-    // ===== 媒体 =====
+    // ===== 信令 =====
+    function sendSignaling(obj){
+        if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+    }
+
+    function connectSignaling(name){
+        ws = new WebSocket(WS_URL);
+        ws.onopen = function(){ sendSignaling({ type:'login', name: name }); };
+        ws.onmessage = function(e){
+            try { handleSignaling(JSON.parse(e.data)); }
+            catch(err){ console.warn('解析消息失败:', e.data); }
+        };
+        ws.onclose = function(){
+            if(!isLoginScreen){
+                showError('信令连接断开，3 秒后重连…');
+                setTimeout(function(){
+                    if(!isLoginScreen && myName){ connectSignaling(myName); }
+                }, 3000);
+            }
+        };
+        ws.onerror = function(){
+            if(isLoginScreen){ showLoginError('无法连接信令服务器'); loginBtn.disabled = false; }
+        };
+    }
+
+    // ===== 媒体（本地预览，加约束防高分辨率卡顿） =====
     async function startMedia(){
+        var ok = false;
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { width:{ ideal:1280 }, height:{ ideal:720 }, frameRate:{ ideal:30 } },
+                audio: { echoCancellation:true, noiseSuppression:true }
+            });
+            ok = true;
+        } catch(e1) {
+            try {
+                // 降级：摄像头不支持指定分辨率时退回系统默认
+                localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+                ok = true;
+            } catch(e2) {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+                    ok = true;
+                } catch(e3) {
+                    console.warn('获取媒体设备失败:', e1, e2, e3);
+                }
+            }
+        }
+        if(ok && localStream){
             localVideo.srcObject = localStream;
             localVideo.style.display = 'block';
             videoPlaceholder.style.display = 'none';
             micBtn.disabled = false;
             camBtn.disabled = false;
-        } catch(e) {
-            console.warn('获取媒体设备失败:', e);
-            // 允许无视频模式
+        } else {
+            // 无视频/无音频模式：仍允许信令文本通话
             videoPlaceholder.style.display = 'flex';
             localVideo.style.display = 'none';
+            micBtn.disabled = true;
+            camBtn.disabled = true;
         }
     }
 
@@ -282,173 +319,171 @@ body.light .video-placeholder{color:#b0c0d0}
 
     function toggleMic(){
         if(!localStream) return;
-        var audioTrack = localStream.getAudioTracks()[0];
-        if(audioTrack){
-            audioTrack.enabled = !audioTrack.enabled;
-            micBtn.style.opacity = audioTrack.enabled ? '1' : '.4';
-        }
+        var at = localStream.getAudioTracks()[0];
+        if(at){ at.enabled = !at.enabled; micBtn.style.opacity = at.enabled ? '1' : '.4'; }
     }
-
     function toggleCam(){
         if(!localStream) return;
-        var videoTrack = localStream.getVideoTracks()[0];
-        if(videoTrack){
-            videoTrack.enabled = !videoTrack.enabled;
-            camBtn.style.opacity = videoTrack.enabled ? '1' : '.4';
-            localVideo.style.display = videoTrack.enabled ? 'block' : 'none';
-            videoPlaceholder.style.display = videoTrack.enabled ? 'none' : 'flex';
+        var vt = localStream.getVideoTracks()[0];
+        if(vt){
+            vt.enabled = !vt.enabled;
+            camBtn.style.opacity = vt.enabled ? '1' : '.4';
+            localVideo.style.display = vt.enabled ? 'block' : 'none';
+            videoPlaceholder.style.display = vt.enabled ? 'none' : 'flex';
         }
     }
 
     // ===== WebRTC =====
     function createPeerConnection(){
-        if(pc) pc.close();
-        var config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        closePeer(); // 确保单例
+        var config = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.miwifi.com:3478'] }] };
         pc = new RTCPeerConnection(config);
 
         pc.onicecandidate = function(e){
-            if(e.candidate && ws && ws.readyState === WebSocket.OPEN){
-                ws.send(JSON.stringify({
-                    type: 'candidate',
-                    from: myName,
-                    to: targetName,
+            // 仅在通话协商期间发送；candidate 由对端在 remoteDescription 就绪后缓存处理
+            if(e.candidate && targetName && callDirection){
+                sendSignaling({
+                    type:'candidate', from: myName, to: targetName,
                     candidate: e.candidate.candidate,
                     sdp_mid: e.candidate.sdpMid,
                     mline_index: e.candidate.sdpMLineIndex
-                }));
+                });
             }
         };
 
         pc.ontrack = function(e){
-            if(e.streams && e.streams[0]){
-                remoteVideo.srcObject = e.streams[0];
-            }
+            // 兜底：个别浏览器 e.streams 为空时用 track 组流
+            var stream = (e.streams && e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+            remoteVideo.srcObject = stream;
         };
 
         pc.oniceconnectionstatechange = function(){
-            if(pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed'){
-                setStatus('error', '连接断开');
+            if(!pc) return;
+            var st = pc.iceConnectionState;
+            if(st === 'connected' || st === 'completed'){
+                setStatus('connected', '与 ' + targetName + ' 通话中');
+            } else if(st === 'failed'){
+                showError('连接失败，请挂断重试');
+            } else if(st === 'disconnected'){
+                showError('连接不稳定…');
             }
         };
 
         // 添加本地轨道
         if(localStream){
-            localStream.getTracks().forEach(function(track){
-                pc.addTrack(track, localStream);
-            });
+            localStream.getTracks().forEach(function(track){ pc.addTrack(track, localStream); });
         }
-
         return pc;
     }
 
-    // ===== 信令 =====
-    function connectSignaling(name){
-        ws = new WebSocket(WS_URL);
-
-        ws.onopen = function(){
-            ws.send(JSON.stringify({ type: 'login', name: name }));
-        };
-
-        ws.onmessage = function(e){
-            try {
-                var msg = JSON.parse(e.data);
-                handleSignaling(msg);
-            } catch(err) {
-                console.warn('解析消息失败:', e.data);
-            }
-        };
-
-        ws.onclose = function(){
-            if(!isLoginScreen){
-                setStatus('error', '信令连接断开');
-                setTimeout(function(){
-                    if(!isLoginScreen) connectSignaling(myName);
-                }, 3000);
-            }
-        };
-
-        ws.onerror = function(){
-            showLoginError('无法连接信令服务器');
-            loginBtn.disabled = false;
-        };
+    function closePeer(){
+        if(pc){ try{ pc.close(); }catch(e){} pc = null; }
+        pendingCandidates = [];
     }
 
+    // 添加远端 candidate：remoteDescription 未就绪先缓存，就绪后 flush
+    function addRemoteCandidate(msg){
+        if(!pc) return;
+        var doAdd = function(c){
+            pc.addIceCandidate(new RTCIceCandidate({
+                candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.mline_index
+            })).catch(function(){});
+        };
+        if(pc.remoteDescription){ doAdd(msg); }
+        else { pendingCandidates.push(msg); }
+    }
+    function flushCandidates(){
+        while(pendingCandidates.length){
+            var c = pendingCandidates.shift();
+            pc.addIceCandidate(new RTCIceCandidate({
+                candidate: c.candidate, sdpMid: c.sdp_mid, sdpMLineIndex: c.mline_index
+            })).catch(function(){});
+        }
+    }
+
+    // ===== 信令处理 =====
     function handleSignaling(msg){
         switch(msg.type){
             case 'login':
                 if(msg.ok){
                     hideLoginError();
                     showScreen(false);
+                    resetUI();
                     startMedia();
                     setStatus('idle');
                 } else {
                     showLoginError(msg.reason || '登录失败');
                     loginBtn.disabled = false;
-                    if(ws) { ws.close(); ws = null; }
+                    if(ws){ ws.close(); ws = null; }
                 }
                 break;
 
             case 'offer':
-                // 收到呼叫
+                // 收到来电：立即建 pc 并设置远端 offer，使后续 candidate 不丢失；answer 留待用户点击接听
                 targetName = msg.from;
                 callDirection = 'incoming';
-                pendingOfferSdp = msg.sdp;
+                incomingPending = true;
+                inCall = false;
+                awaitingAnswer = false;
+
+                createPeerConnection();
+                pc.setRemoteDescription(new RTCSessionDescription({ type:'offer', sdp: msg.sdp }))
+                    .then(function(){ flushCandidates(); })
+                    .catch(function(err){ console.error('setRemote(offer) 失败:', err); });
+
                 callTargetName.textContent = targetName;
                 callStatusText.textContent = '📞 来电';
                 dialPanel.classList.add('show');
                 idlePanel.style.display = 'none';
                 answerBtn.classList.remove('hidden');
+                hangupBtn2.classList.remove('hidden');
                 setStatus('ringing', '来自 ' + targetName + ' 的呼叫');
 
-                // 通知主叫方正在振铃
-                if(ws && ws.readyState === WebSocket.OPEN){
-                    ws.send(JSON.stringify({ type: 'ringing', from: myName, to: targetName }));
-                }
+                sendSignaling({ type:'ringing', from: myName, to: targetName });
                 break;
 
             case 'ringing':
-                // 主叫方收到振铃通知
-                callStatusText.textContent = '🔔 振铃中';
-                setStatus('ringing', targetName + ' 振铃中...');
-                break;
-
-            case 'reject':
-                // 对方拒绝
-                setStatus('idle', targetName + ' 已拒绝');
-                endCall();
-                setTimeout(function(){ resetUI(); }, 2000);
+                if(callDirection === 'outgoing' && awaitingAnswer){
+                    callStatusText.textContent = '🔔 振铃中';
+                    setStatus('ringing', targetName + ' 振铃中…');
+                }
                 break;
 
             case 'answer':
+                awaitingAnswer = false;
                 if(pc){
-                    pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
-                    setStatus('connected', '与 ' + targetName + ' 通话中');
+                    pc.setRemoteDescription(new RTCSessionDescription({ type:'answer', sdp: msg.sdp }))
+                        .then(function(){ flushCandidates(); })
+                        .catch(function(err){ console.error('setRemote(answer) 失败:', err); });
+                    inCall = true;
                     dialPanel.classList.remove('show');
                     hangupBtn2.classList.remove('hidden');
+                    setStatus('connected', '与 ' + targetName + ' 通话中');
                 }
                 break;
 
             case 'candidate':
-                if(pc && msg.candidate){
-                    pc.addIceCandidate(new RTCIceCandidate({
-                        candidate: msg.candidate,
-                        sdpMid: msg.sdp_mid,
-                        sdpMLineIndex: msg.mline_index
-                    })).catch(function(e){});
+                addRemoteCandidate(msg);
+                break;
+
+            case 'reject':
+                if(callDirection === 'outgoing'){
+                    setStatus('idle', targetName + ' 已拒绝');
+                    endCall();
+                    setTimeout(resetUI, 1500);
                 }
                 break;
 
             case 'leave':
-                // 对方挂断
-                if(inCall){
-                    setStatus('idle', '对方已挂断');
-                    endCall();
-                    setTimeout(function(){ resetUI(); }, 2000);
-                }
+                setStatus('idle', '对方已挂断');
+                endCall();
+                setTimeout(resetUI, 1500);
                 break;
 
             case 'error':
-                setStatus('error', msg.reason || '信令错误');
+                showError(msg.reason || '信令错误');
+                endCall();
+                setTimeout(resetUI, 2000);
                 break;
         }
     }
@@ -459,7 +494,7 @@ body.light .video-placeholder{color:#b0c0d0}
         if(!name){ showLoginError('请输入昵称'); return; }
         hideLoginError();
         loginBtn.disabled = true;
-        loginBtn.textContent = '连接中...';
+        loginBtn.textContent = '连接中…';
         myName = name;
         connectSignaling(name);
     };
@@ -468,12 +503,16 @@ body.light .video-placeholder{color:#b0c0d0}
         var target = targetNameInput.value.trim();
         if(!target){ alert('请输入对方昵称'); return; }
         if(target === myName){ alert('不能呼叫自己'); return; }
-        if(!ws || ws.readyState !== WebSocket.OPEN){ alert('信令未连接'); return; }
+        if(!ws || ws.readyState !== WebSocket.OPEN){ alert('信令未连接，请稍候'); return; }
 
         targetName = target;
         callDirection = 'outgoing';
+        awaitingAnswer = true;
+        inCall = true;
+        incomingPending = false;
+
         callTargetName.textContent = targetName;
-        callStatusText.textContent = '正在呼叫...';
+        callStatusText.textContent = '正在呼叫…';
         dialPanel.classList.add('show');
         idlePanel.style.display = 'none';
         hangupBtn2.classList.remove('hidden');
@@ -481,90 +520,62 @@ body.light .video-placeholder{color:#b0c0d0}
 
         createPeerConnection();
 
-        // 创建 Offer
         pc.createOffer().then(function(offer){
             return pc.setLocalDescription(offer);
         }).then(function(){
-            ws.send(JSON.stringify({
-                type: 'offer',
-                from: myName,
-                to: targetName,
-                sdp: pc.localDescription.sdp
-            }));
+            sendSignaling({ type:'offer', from: myName, to: targetName, sdp: pc.localDescription.sdp });
         }).catch(function(err){
             console.error('创建 Offer 失败:', err);
-            setStatus('error', '创建连接失败');
+            showError('创建连接失败');
         });
-
-        inCall = true;
     };
 
-    function handleOffer(sdp){
-        createPeerConnection();
-
-        pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sdp })).then(function(){
-            return pc.createAnswer();
-        }).then(function(answer){
-            return pc.setLocalDescription(answer);
+    window.answerCall = function(){
+        if(!incomingPending || !pc) return;
+        incomingPending = false;
+        answerBtn.classList.add('hidden');
+        pc.createAnswer().then(function(a){
+            return pc.setLocalDescription(a);
         }).then(function(){
-            ws.send(JSON.stringify({
-                type: 'answer',
-                from: myName,
-                to: targetName,
-                sdp: pc.localDescription.sdp
-            }));
-            setStatus('connected', '与 ' + targetName + ' 通话中');
-            hangupBtn2.classList.remove('hidden');
+            sendSignaling({ type:'answer', from: myName, to: targetName, sdp: pc.localDescription.sdp });
+            inCall = true;
             dialPanel.classList.remove('show');
+            hangupBtn2.classList.remove('hidden');
+            setStatus('connected', '与 ' + targetName + ' 通话中');
         }).catch(function(err){
             console.error('创建 Answer 失败:', err);
+            showError('接听失败');
         });
-
-        inCall = true;
-    }
-
-    window.answerCall = function(){
-        if(!pendingOfferSdp) return;
-        answerBtn.classList.add('hidden');
-        hangupBtn2.classList.remove('hidden');
-        handleOffer(pendingOfferSdp);
-        pendingOfferSdp = null;
-
-        // 通知主叫方已接听
-        if(ws && ws.readyState === WebSocket.OPEN){
-            ws.send(JSON.stringify({ type: 'accept', from: myName, to: targetName }));
-        }
     };
 
     window.hangup = function(){
-        // 未接听的来电 → 发 reject
-        if(callDirection === 'incoming' && !inCall){
-            if(ws && ws.readyState === WebSocket.OPEN && targetName){
-                ws.send(JSON.stringify({ type: 'reject', from: myName, to: targetName }));
-            }
+        if(callDirection === 'incoming' && incomingPending){
+            // 未接听的来电 → 拒接
+            sendSignaling({ type:'reject', from: myName, to: targetName });
         } else {
-            if(ws && ws.readyState === WebSocket.OPEN && targetName){
-                ws.send(JSON.stringify({ type: 'leave', from: myName, to: targetName }));
-            }
+            sendSignaling({ type:'leave', from: myName, to: targetName });
         }
         endCall();
         resetUI();
     };
 
     function endCall(){
-        if(pc) { pc.close(); pc = null; }
+        closePeer();
         remoteVideo.srcObject = null;
         inCall = false;
+        incomingPending = false;
+        awaitingAnswer = false;
         callDirection = '';
+        targetName = '';
     }
 
+    // ===== 暴露给内联 onclick（须在全局作用域可见） =====
+    window.toggleMic = toggleMic;
+    window.toggleCam = toggleCam;
+
     // ===== 键盘快捷键 =====
-    loginName.addEventListener('keydown', function(e){
-        if(e.key === 'Enter') window.doLogin();
-    });
-    targetNameInput.addEventListener('keydown', function(e){
-        if(e.key === 'Enter') window.startCall();
-    });
+    loginName.addEventListener('keydown', function(e){ if(e.key === 'Enter') window.doLogin(); });
+    targetNameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') window.startCall(); });
 
 })();
 </script>
