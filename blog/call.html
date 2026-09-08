@@ -46,15 +46,14 @@ body.light .login-card input{background:#fff;border-color:rgba(0,0,0,.1);color:#
 /* ===== 通话界面 ===== */
 .call-screen{flex:1;display:none;position:relative;background:#000}
 
-/* 远端视频（全屏） */
-#remoteVideo{width:100%;height:100%;object-fit:contain;background:#0a0a0a}
-
-/* 本地视频（画中画，右下角） */
-#localVideo{position:absolute;bottom:100px;right:20px;width:200px;height:150px;object-fit:cover;border-radius:10px;border:2px solid rgba(74,158,255,.3);background:#1a1a2a;transform:scaleX(-1);z-index:10;display:none}
-@media(max-width:600px){#localVideo{width:140px;height:105px;bottom:90px;right:10px}}
+/* 视频窗口：默认 远端铺满(主) + 本地小窗(副 .pip)；点小窗可互换 */
+#remoteVideo,#localVideo{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#0a0a0a}
+#localVideo{transform:scaleX(-1);display:none} /* 本地预览镜像；初始隐藏，由 JS 显示 */
+#remoteVideo.pip,#localVideo.pip{width:200px;height:150px;object-fit:cover;border-radius:10px;border:2px solid rgba(74,158,255,.3);background:#1a1a2a;z-index:10;top:auto;bottom:100px;right:20px;left:auto;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.45)}
+@media(max-width:600px){#remoteVideo.pip,#localVideo.pip{width:140px;height:105px;bottom:90px;right:10px}}
 
 /* 无摄像头画面占位 */
-.video-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#3a4a5a;font-size:4rem}
+.video-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#3a4a5a;font-size:4rem;pointer-events:none;z-index:1}
 body.light .video-placeholder{color:#b0c0d0}
 
 /* 底部控制栏 */
@@ -131,7 +130,7 @@ body.light .video-placeholder{color:#b0c0d0}
     <!-- 远端视频 -->
     <video id="remoteVideo" autoplay playsinline></video>
     <!-- 本地视频 -->
-    <video id="localVideo" autoplay playsinline muted></video>
+    <video id="localVideo" class="pip" autoplay playsinline muted title="点击互换大小窗口"></video>
     <!-- 无摄像头占位 -->
     <div class="video-placeholder" id="videoPlaceholder">📹</div>
     <!-- 状态条 -->
@@ -615,6 +614,24 @@ body.light .video-placeholder{color:#b0c0d0}
     // ===== 暴露给内联 onclick（须在全局作用域可见） =====
     window.toggleMic = toggleMic;
     window.toggleCam = toggleCam;
+
+    // ===== 大小窗口互换：点小窗(.pip) ↔ 与大窗互换 =====
+    function toggleWindow(){
+        if(localVideo.classList.contains('pip')){
+            // 本地小窗 → 变成主窗
+            localVideo.classList.remove('pip');
+            remoteVideo.classList.add('pip');
+        } else {
+            remoteVideo.classList.remove('pip');
+            localVideo.classList.add('pip');
+        }
+    }
+    remoteVideo.addEventListener('click', function(){
+        if(remoteVideo.classList.contains('pip')) toggleWindow();
+    });
+    localVideo.addEventListener('click', function(){
+        if(localVideo.classList.contains('pip')) toggleWindow();
+    });
 
     // ===== 键盘快捷键 =====
     loginName.addEventListener('keydown', function(e){ if(e.key === 'Enter') window.doLogin(); });
