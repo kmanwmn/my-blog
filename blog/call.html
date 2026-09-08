@@ -180,6 +180,8 @@ body.light .video-placeholder{color:#b0c0d0}
     var isLoginScreen = true;
     var callDirection = '';       // 'outgoing' | 'incoming'
     var errorTimer = null;
+    var sessionStarted = false;   // 首次登录成功后才初始化界面（重连不再重置）
+    var reconnectTimer = null;    // 防重复重连
 
     // ===== DOM =====
     function $(id){ return document.getElementById(id); }
@@ -230,6 +232,16 @@ body.light .video-placeholder{color:#b0c0d0}
         callScreen.style.display = login ? 'none' : 'block';
     }
 
+    // 按“是否真有对应轨道”决定按钮可用性，避免通话中被误禁用
+    function refreshMediaButtons(){
+        var hasAudio = !!(localStream && localStream.getAudioTracks().length);
+        var hasVideo = !!(localStream && localStream.getVideoTracks().length);
+        micBtn.disabled = !hasAudio;
+        camBtn.disabled = !hasVideo;
+        if(hasAudio) micBtn.style.opacity = '1';
+        if(hasVideo) camBtn.style.opacity = '1';
+    }
+
     function resetUI(){
         inCall = false;
         incomingPending = false;
@@ -240,8 +252,7 @@ body.light .video-placeholder{color:#b0c0d0}
         idlePanel.style.display = 'block';
         hangupBtn2.classList.add('hidden');
         answerBtn.classList.add('hidden');
-        micBtn.disabled = true;
-        camBtn.disabled = true;
+        refreshMediaButtons();
         setStatus('idle');
     }
 
@@ -258,9 +269,11 @@ body.light .video-placeholder{color:#b0c0d0}
             catch(err){ console.warn('解析消息失败:', e.data); }
         };
         ws.onclose = function(){
-            if(!isLoginScreen){
+            if(!isLoginScreen && myName){
                 showError('信令连接断开，3 秒后重连…');
-                setTimeout(function(){
+                if(reconnectTimer) clearTimeout(reconnectTimer);
+                reconnectTimer = setTimeout(function(){
+                    reconnectTimer = null;
                     if(!isLoginScreen && myName){ connectSignaling(myName); }
                 }, 3000);
             }
@@ -312,14 +325,12 @@ body.light .video-placeholder{color:#b0c0d0}
             localVideo.srcObject = localStream;
             localVideo.style.display = 'block';
             videoPlaceholder.style.display = 'none';
-            micBtn.disabled = false;
-            camBtn.disabled = false;
+            refreshMediaButtons();
         } else {
             // 无视频/无音频：给出明确原因，避免“黑屏不知为何”
             videoPlaceholder.style.display = 'flex';
             localVideo.style.display = 'none';
-            micBtn.disabled = true;
-            camBtn.disabled = true;
+            refreshMediaButtons();
             var reason = '无法开启摄像头/麦克风';
             var code = (lastErr && lastErr.name) || '';
             if(code === 'NotAllowedError' || code === 'PermissionDeniedError'){
@@ -434,10 +445,15 @@ body.light .video-placeholder{color:#b0c0d0}
             case 'login':
                 if(msg.ok){
                     hideLoginError();
-                    showScreen(false);
-                    resetUI();
-                    startMedia();
-                    setStatus('idle');
+                    if(reconnectTimer){ clearTimeout(reconnectTimer); reconnectTimer = null; }
+                    if(!sessionStarted){
+                        // 仅首次登录初始化界面/媒体；重连成功不重置进行中的通话
+                        sessionStarted = true;
+                        showScreen(false);
+                        resetUI();
+                        startMedia();
+                        setStatus('idle');
+                    }
                 } else {
                     showLoginError(msg.reason || '登录失败');
                     loginBtn.disabled = false;
