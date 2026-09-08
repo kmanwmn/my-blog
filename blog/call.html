@@ -24,6 +24,10 @@ body.light .nav-brand{color:#1a2a3a}
 .nav-home:hover{color:#4a9eff}
 body.light .nav-home{color:#5a6a7a}
 body.light .nav-home:hover{color:#4a9eff}
+.logout-btn{background:none;border:none;color:#e04040;font-size:.8rem;cursor:pointer;font-family:inherit;padding:4px 6px}
+.logout-btn:hover{color:#f87171}
+body.light .logout-btn{color:#d03030}
+body.light .logout-btn:hover{color:#ff5252}
 
 /* 页面主体 */
 .main-wrap{height:100vh;display:flex;flex-direction:column;padding:70px 0 0}
@@ -107,6 +111,7 @@ body.light .video-placeholder{color:#b0c0d0}
         <a href="/" class="nav-brand">个人博客</a>
         <div class="nav-right">
             <button class="theme-btn" id="themeBtn">☀️</button>
+            <button class="logout-btn hidden" id="logoutBtn" onclick="doLogout()" title="退出登录并释放昵称">退出</button>
             <a href="/" class="nav-home">← 首页</a>
         </div>
     </div>
@@ -192,6 +197,7 @@ body.light .video-placeholder{color:#b0c0d0}
     var dialPanel = $('dialPanel'), callStatusText = $('callStatusText'), callTargetName = $('callTargetName');
     var hangupBtn = $('hangupBtn'), hangupBtn2 = $('hangupBtn2'), answerBtn = $('answerBtn');
     var micBtn = $('micBtn'), camBtn = $('camBtn'), onlineHint = $('onlineHint');
+    var logoutBtn = $('logoutBtn');
 
     // ===== 主题 =====
     var themeBtn = $('themeBtn');
@@ -451,10 +457,15 @@ body.light .video-placeholder{color:#b0c0d0}
                         showScreen(false);
                         resetUI();
                         startMedia();
+                        logoutBtn.classList.remove('hidden');
                         setStatus('idle');
                     }
                 } else {
-                    showLoginError(msg.reason || '登录失败');
+                    var occReason = (msg.reason || '');
+                    if(occReason.indexOf('占用') >= 0){
+                        occReason += '（若这是你自己上次的页面，请先关闭旧标签页，或点右上角“退出”）';
+                    }
+                    showLoginError(occReason || '登录失败');
                     loginBtn.disabled = false;
                     if(ws){ ws.close(); ws = null; }
                 }
@@ -539,6 +550,28 @@ body.light .video-placeholder{color:#b0c0d0}
         loginBtn.textContent = '连接中…';
         myName = name;
         connectSignaling(name);
+    };
+
+    // 退出登录：主动断开信令并释放昵称
+    window.doLogout = function(){
+        if(reconnectTimer){ clearTimeout(reconnectTimer); reconnectTimer = null; }
+        if(ws){
+            try{ ws.send(JSON.stringify({ type:'logout', from: myName })); }catch(e){}
+            try{ ws.close(); }catch(e){}
+            ws = null;
+        }
+        endCall();
+        stopMedia();
+        sessionStarted = false;
+        myName = '';
+        logoutBtn.classList.add('hidden');
+        hideLoginError();
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
+        loginName.value = '';
+        showScreen(true);
+        resetUI();
+        statusBar.classList.remove('show');
     };
 
     window.startCall = function(){
